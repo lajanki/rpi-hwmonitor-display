@@ -1,0 +1,6 @@
+.env
+venv
+.vscode
+__pycache__
+readings.json
+hwmonitor_service_account_key.json

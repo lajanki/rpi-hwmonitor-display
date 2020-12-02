@@ -1,0 +1,20 @@
+QLCDNumber {
+  background-color: #660000;
+  color: white;
+  font-weight: 500;
+  border: 1px;
+}
+
+[QWidget^="container"] {
+  background-color: black;
+}
+
+AlarmWindow {
+  #color: #FF1414;
+  background-color: #090201;
+}
+
+AlarmWindow QLabel {
+  color: #FF1414;
+  font: 18pt;
+}
