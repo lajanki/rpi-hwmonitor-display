@@ -6,7 +6,7 @@ import json
 import pytz
 from datetime import datetime
 
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt, QTimer, QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import (
     QMainWindow,
@@ -36,14 +36,8 @@ class MainWindow(QMainWindow):
 
 
     def init_ui(self):
-        main_widget = QWidget() # dummy widget to hold a layout
-        
-        #main_widget.setAutoFillBackground(True)
-        # p = main_widget.palette()
-        # p.setColor(main_widget.backgroundRole(), Qt.red)
-        # main_widget.setPalette(p)
-
-        #main_widget.setStyleSheet("background-color: black;") 
+        main_widget = QWidget(objectName="main_window") # dummy widget to hold a layout
+        main_widget.setAutoFillBackground(True)
         self.setCentralWidget(main_widget)
         
         base_layout = QGridLayout()
@@ -57,17 +51,23 @@ class MainWindow(QMainWindow):
         base_layout.addLayout(ram_grid, 1, 0)
         base_layout.addLayout(gpu_grid, 1, 1)
   
-        base_layout.setRowStretch(0, 4)
+        base_layout.setRowStretch(0, 2)
         base_layout.setRowStretch(1, 3)
 
         ### CPU row (top row)
-        cpu_title_label = QLabel("CPU")
-        cpu_grid.addWidget(cpu_title_label, 0, 2, 1, 2)
-        cpu_title_label.setAlignment(Qt.AlignHCenter)
+        cpu_title_label = QLabel("CPU", objectName="cpu_title")
+        cpu_grid.addWidget(cpu_title_label, 0, 0)
 
-        cpu_grid.addWidget(QLabel("Utilization"), 1, 0)
-        cpu_grid.addWidget(QLabel("Frequency"), 2, 0)
-        cpu_grid.addWidget(QLabel("Temperature"), 3, 0)
+        cpu_utilization_label = QLabel("%")
+        cpu_utilization_label.adjustSize()
+        cpu_grid.addWidget(cpu_utilization_label, 1, 0)
+        cpu_grid.addWidget(QLabel("MHz"), 2, 0)
+        cpu_grid.addWidget(QLabel("°C "), 3, 0)
+
+        # Close button, top right
+        close_button = QPushButton("Close")
+        cpu_grid.addWidget(close_button, 0, 4)
+        close_button.clicked.connect(self.stop_thread_and_exit)
 
         self.cpu_utilization_reading = []
         for i in range(4):
@@ -131,8 +131,12 @@ class MainWindow(QMainWindow):
         X_MAX = view_range[0][1]
         Y_MAX = view_range[1][1]
 
+        font=QFont()
+        font.setPixelSize(18)
+
         self.ram_used_label = pg.TextItem("Used: GB", fill="#660000", anchor=(1,1))
-        self.ram_used_label.setPos(X_MAX, 0.8 * Y_MAX)
+        self.ram_used_label.setFont(font)
+        self.ram_used_label.setPos(X_MAX, 0.7 * Y_MAX)
         ram_plot.addItem(self.ram_used_label)  
 
         ram_grid.addWidget(ram_plot, 0, 0)
@@ -172,12 +176,14 @@ class MainWindow(QMainWindow):
         X_MAX = view_range[0][1]
         Y_MAX = view_range[1][1]
 
-        self.gpu_utilization_label = pg.TextItem("Utilization: %", fill="#660000", anchor=(1,1))
-        self.gpu_utilization_label.setPos(X_MAX, 0.8 * Y_MAX)
+        self.gpu_utilization_label = pg.TextItem("%", fill="#660000", anchor=(1,1))
+        self.gpu_utilization_label.setFont(font)
+        self.gpu_utilization_label.setPos(X_MAX, 0.7 * Y_MAX)
         gpu_plot.addItem(self.gpu_utilization_label)  
 
-        self.gpu_temp_label = pg.TextItem("Temp: °C", fill="#660000", anchor=(1,1))
-        self.gpu_temp_label.setPos(X_MAX, 0.65 * Y_MAX)
+        self.gpu_temp_label = pg.TextItem("°C", fill="#660000", anchor=(1,1))
+        self.gpu_temp_label.setFont(font)
+        self.gpu_temp_label.setPos(X_MAX, 0.5 * Y_MAX)
         gpu_plot.addItem(self.gpu_temp_label)  
 
         gpu_grid.addWidget(gpu_plot, 0, 0)
@@ -198,6 +204,19 @@ class MainWindow(QMainWindow):
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
+    @pyqtSlot()
+    def stop_thread_and_exit(self):
+        """Stop any running SubscriberThread and exit the application."""
+        #for thread in SubscriberThread._instances:
+            #thread.requestInterruption()
+            #thread.exit()
+
+        # [t.terminate() for t in SubscriberThread._instances]
+        # print([t.isRunning() for t in SubscriberThread._instances])
+        # print(SubscriberThread._instances)
+
+        #self.close()
 
     @pyqtSlot(dict)
     def update_readings(self, readings):
@@ -241,19 +260,21 @@ class MainWindow(QMainWindow):
         self.gpu_used_bar_label.setText("{}%".format(used))
         self.gpu_utilization_bar_label.setText("{}%".format(utilization))
 
-        self.gpu_utilization_label.setText("Utilization: {:.1f}%".format(utilization))
-        self.gpu_temp_label.setText("Temp: {}°C".format(temperature))
+        self.gpu_utilization_label.setText("{:d}%".format(utilization))
+        self.gpu_temp_label.setText("{}°C".format(temperature))
 
 
 class SubscriberThread(QThread):
+    _instances = []
+
     def __init__(self, parent_window):
         self.parent = parent_window
         self.refresh_signal = RefreshSignal()
         self.refresh_signal.signal.connect(parent_window.update_readings)
-
         self.THREAD_START_TIME = pytz.UTC.localize(datetime.utcnow()) 
 
         super(SubscriberThread, self).__init__(parent_window)
+        SubscriberThread._instances.append(self)
 
     def run(self):
         subscriber.listen_for_messages(self.pull_and_emit_stats)
@@ -272,5 +293,4 @@ class SubscriberThread(QThread):
 
 
 class RefreshSignal(QObject):
-
     signal = pyqtSignal(dict)
