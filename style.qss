@@ -5,16 +5,17 @@ QLCDNumber {
   border: 1px;
 }
 
-[QWidget^="container"] {
+QLabel#cpu_title {
+  font-weight: bold;
+  font-size: 20pt;
+  border: 0px solid black;
+}
+
+QLabel {
+  font-size: 16pt;
+  border: 1px solid black;
+}
+
+QWidget#main_window1 {
   background-color: black;
-}
-
-AlarmWindow {
-  #color: #FF1414;
-  background-color: #090201;
-}
-
-AlarmWindow QLabel {
-  color: #FF1414;
-  font: 18pt;
 }

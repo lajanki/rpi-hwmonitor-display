@@ -7,30 +7,43 @@ from dotenv import load_dotenv
 from google.cloud import pubsub_v1
 
 
+
 load_dotenv()
+logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 
 PROJECT_ID = os.getenv("PROJECT_ID")
 SUBSCRIPTION_ID = os.getenv("SUBSCRIPTION_ID")
+client = pubsub_v1.SubscriberClient()
+subscription_path = client.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
 
-logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 
-subscriber = pubsub_v1.SubscriberClient()
-# The `subscription_path` method creates a fully qualified identifier
-# in the form `projects/{project_id}/subscriptions/{subscription_id}`
-subscription_path = subscriber.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
+def pull_message():
+    """Pull a single message from the subscription."""
+    response = client.pull(
+        request={
+            "subscription": subscription_path,
+            "max_messages": 1,
+        },
+        timeout=1.0
+    )
 
-def log_message(message):
-    #print(f"Received {message}.")
-    data = json.loads(message.data.decode("utf-8"))
-    logging.info(data)
-    message.ack()
+    ack_ids = [msg.ack_id for msg in response.received_messages]
+    client.acknowledge(
+        request={
+            "subscription": subscription_path,
+            "ack_ids": ack_ids,
+        }
+    )
+    data = response.received_messages[0].message.data.decode("utf-8")
+    return json.loads(data)
 
 def listen_for_messages(callback):
-    streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback)
+    """Asynchronous pull: keep listening for messages indefinitely."""
+    streaming_pull_future = client.subscribe(subscription_path, callback=callback)
     logging.info(f"Listening for messages on {subscription_path}..\n")
 
     # Wrap subscriber in a 'with' block to automatically call close() when done.
-    with subscriber:
+    with client:
         try:
             # When `timeout` is not set, result() will block indefinitely,
             # unless an exception is encountered first.
@@ -38,6 +51,12 @@ def listen_for_messages(callback):
         except TimeoutError:
             streaming_pull_future.cancel()
 
+def _log_message(message):
+    data = json.loads(message.data.decode("utf-8"))
+    logging.info(data)
+    message.ack()
+
 
 if __name__ == "__main__":
-    listen_for_messages(log_message)
+    listen_for_messages(_log_message)
+    #print(pull_message())

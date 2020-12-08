@@ -4,8 +4,10 @@ from collections import namedtuple
 import time
 import json
 import pytz
-from datetime import datetime
+import logging
+from datetime import datetime, timedelta
 
+from google.api_core.exceptions import DeadlineExceeded
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt, QTimer, QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import (
@@ -33,7 +35,6 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.init_ui()
-
 
     def init_ui(self):
         main_widget = QWidget(objectName="main_window") # dummy widget to hold a layout
@@ -192,11 +193,15 @@ class MainWindow(QMainWindow):
         with open("style.qss") as f:
            self.setStyleSheet(f.read())
 
-        #self.setLayout(base_layout)
         self.resize(620, 420)
-        self.center()
-
         self.setWindowTitle("HWMonitor")
+        self.center()
+        
+        self.timer = QTimer(self)
+        self.pull()
+        self.timer.timeout.connect(self.pull)
+        self.timer.start(1000*30)
+
         self.show()
 
     def center(self):
@@ -205,18 +210,23 @@ class MainWindow(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
+    def pull(self):
+        """Pull a single message from the topic.
+        Note that this runs on the same thread as the GUI.
+        """
+        try:
+            readings = subscriber.pull_message()
+            self.update_readings(readings)
+        except DeadlineExceeded:
+            logging.warning("Nothing received from from topic.")
+            return
+
+
     @pyqtSlot()
     def stop_thread_and_exit(self):
         """Stop any running SubscriberThread and exit the application."""
-        #for thread in SubscriberThread._instances:
-            #thread.requestInterruption()
-            #thread.exit()
-
-        # [t.terminate() for t in SubscriberThread._instances]
-        # print([t.isRunning() for t in SubscriberThread._instances])
-        # print(SubscriberThread._instances)
-
-        #self.close()
+        self.timer.stop()
+        self.close()
 
     @pyqtSlot(dict)
     def update_readings(self, readings):
@@ -262,35 +272,3 @@ class MainWindow(QMainWindow):
 
         self.gpu_utilization_label.setText("{:d}%".format(utilization))
         self.gpu_temp_label.setText("{}°C".format(temperature))
-
-
-class SubscriberThread(QThread):
-    _instances = []
-
-    def __init__(self, parent_window):
-        self.parent = parent_window
-        self.refresh_signal = RefreshSignal()
-        self.refresh_signal.signal.connect(parent_window.update_readings)
-        self.THREAD_START_TIME = pytz.UTC.localize(datetime.utcnow()) 
-
-        super(SubscriberThread, self).__init__(parent_window)
-        SubscriberThread._instances.append(self)
-
-    def run(self):
-        subscriber.listen_for_messages(self.pull_and_emit_stats)
-
-    def pull_and_emit_stats(self, message):
-        """Callback to pubsub subscriber: decode the message and pass
-        latest values to individual update functions.
-        """
-        readings = json.loads(message.data.decode("utf-8"))
-        message.ack()
-
-        # Ignore messages that were published before the subscriber
-        # was ready.
-        if message.publish_time >= self.THREAD_START_TIME:
-            self.refresh_signal.signal.emit(readings)
-
-
-class RefreshSignal(QObject):
-    signal = pyqtSignal(dict)

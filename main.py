@@ -4,7 +4,7 @@ import logging
 
 from PyQt5.QtWidgets import QApplication
 
-import hwmonitor
+import hwmonitorGUI
 
 
 
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     kwargs = {"fullscreen": args.fullscreen, "debug": args.debug}
 
     app = QApplication(sys.argv)
-    hw_monitor = hwmonitor.App()
+    hw_monitor = hwmonitorGUI.MainWindow()
     res = app.exec_()
 
     sys.exit(res)
