@@ -1,12 +1,9 @@
 import argparse
 import sys
-import logging
 
 from PyQt5.QtWidgets import QApplication
 
 import hwmonitorGUI
-
-
 
 
 if __name__ == "__main__":
@@ -20,6 +17,9 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     hw_monitor = hwmonitorGUI.MainWindow()
+
+    if args.fullscreen:
+        hw_monitor.showFullScreen()
     res = app.exec_()
 
     sys.exit(res)
