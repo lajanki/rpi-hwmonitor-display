@@ -1,15 +1,9 @@
 import os.path
-from functools import partial
-from collections import namedtuple
-import time
-import json
-import pytz
 import logging
-from datetime import datetime, timedelta
 
 from google.api_core.exceptions import DeadlineExceeded
-from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt, QTimer, QThread, QObject, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtCore import Qt, QTimer, pyqtSlot
 from PyQt5.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -23,12 +17,8 @@ from PyQt5.QtWidgets import (
 import pyqtgraph as pg
 
 import subscriber
+import publisher
 
-
-# Create namedtuples for storing button and label configurations
-ButtonConfig = namedtuple("ButtonConfig", ["text", "position", "slot", "icon", "size_policy"])
-ButtonConfig.__new__.__defaults__ = (
-    None, None, None, None, (QSizePolicy.Preferred, QSizePolicy.Preferred))
 
 
 class MainWindow(QMainWindow):
@@ -66,7 +56,9 @@ class MainWindow(QMainWindow):
         cpu_grid.addWidget(QLabel("°C "), 3, 0)
 
         # Close button, top right
-        close_button = QPushButton("Close")
+        close_button = QPushButton("Close ")
+        close_button.setIcon(QIcon("close.png"))
+        close_button.setLayoutDirection(Qt.RightToLeft)
         cpu_grid.addWidget(close_button, 0, 4)
         close_button.clicked.connect(self.stop_thread_and_exit)
 
@@ -200,7 +192,9 @@ class MainWindow(QMainWindow):
         self.timer = QTimer(self)
         self.pull()
         self.timer.timeout.connect(self.pull)
-        self.timer.start(1000*30)
+
+        timer_wait_ms = publisher.UPDATE_INTERVAL * 1000
+        self.timer.start(timer_wait_ms)
 
         self.show()
 

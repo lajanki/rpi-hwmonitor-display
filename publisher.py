@@ -14,7 +14,7 @@ load_dotenv()
 
 PROJECT_ID = os.getenv("PROJECT_ID")
 TOPIC_ID = os.getenv("TOPIC_ID")
-UPDATE_INTERVAL = 30
+UPDATE_INTERVAL = int(os.getenv("UPDATE_INTERVAL", "30"))
 
 publisher = pubsub_v1.PublisherClient()
 # The `topic_path` method creates a fully qualified identifier
