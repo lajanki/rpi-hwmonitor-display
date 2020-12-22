@@ -1,6 +1,7 @@
 import argparse
 import sys
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
 import hwmonitorGUI
@@ -20,6 +21,7 @@ if __name__ == "__main__":
 
     if args.fullscreen:
         hw_monitor.showFullScreen()
-    res = app.exec_()
+        hw_monitor.setCursor(Qt.BlankCursor)
 
+    res = app.exec_()
     sys.exit(res)
