@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import psutil
 import gpustat
 from google.cloud import pubsub_v1
+import pynvml
 
 
 load_dotenv()
@@ -55,13 +56,22 @@ def get_stats():
     }
 
     # GPU
-    gpustats = gpustat.GPUStatCollection.new_query().jsonify()
-    stats["gpu"] = {
-        "memory.used": gpustats["gpus"][0]["memory.used"],
-        "memory.total": gpustats["gpus"][0]["memory.total"],
-        "utilization": gpustats["gpus"][0]["utilization.gpu"],
-        "temperature": gpustats["gpus"][0]["temperature.gpu"]
-    }
+    try:
+        gpustats = gpustat.GPUStatCollection.new_query().jsonify()
+        stats["gpu"] = {
+            "memory.used": gpustats["gpus"][0]["memory.used"],
+            "memory.total": gpustats["gpus"][0]["memory.total"],
+            "utilization": gpustats["gpus"][0]["utilization.gpu"],
+            "temperature": gpustats["gpus"][0]["temperature.gpu"]
+        }
+    except pynvml.NVMLError_LibraryNotFound:
+        logging.warning("NVML library not found, disabling GPU statistics")
+        stats["gpu"] = {
+            "memory.used": 0,
+            "memory.total": 1, # non zero value to avoid division by zero
+            "utilization": 0,
+            "temperature": 0
+        }
 
     return stats
 
