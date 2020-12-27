@@ -23,6 +23,12 @@ publisher = pubsub_v1.PublisherClient()
 topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
+IGNORE_GPU = False
+try:
+    pynvml.nvmlInit()
+except pynvml.NVMLError_LibraryNotFound:
+    logging.warning("NVML library not found, disabling GPU statistics")
+    IGNORE_GPU = True
 
 
 def get_stats():
@@ -56,7 +62,7 @@ def get_stats():
     }
 
     # GPU
-    try:
+    if not IGNORE_GPU:
         gpustats = gpustat.GPUStatCollection.new_query().jsonify()
         stats["gpu"] = {
             "memory.used": gpustats["gpus"][0]["memory.used"],
@@ -64,8 +70,8 @@ def get_stats():
             "utilization": gpustats["gpus"][0]["utilization.gpu"],
             "temperature": gpustats["gpus"][0]["temperature.gpu"]
         }
-    except pynvml.NVMLError_LibraryNotFound:
-        logging.warning("NVML library not found, disabling GPU statistics")
+
+    else:
         stats["gpu"] = {
             "memory.used": 0,
             "memory.total": 1, # non zero value to avoid division by zero
@@ -82,9 +88,7 @@ def publish_stats():
     data = json.dumps(get_stats()).encode("utf-8")
     # When you publish a message, the client returns a future.
     future = publisher.publish(topic_path, data)
-
     logging.info(future.result())
-    #print(f"Published messages to {topic_path}.")
 
     poll()
 
