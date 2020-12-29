@@ -1,10 +1,14 @@
 import argparse
 import sys
+import logging
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
 import hwmonitorGUI
+
+
+logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 
 
 if __name__ == "__main__":
@@ -14,7 +18,9 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true",
                         help="debug mode")
     args = parser.parse_args()
-    kwargs = {"fullscreen": args.fullscreen, "debug": args.debug}
+
+    if args.debug:
+        logging.getLogger().setLevel("DEBUG")
 
     app = QApplication(sys.argv)
     hw_monitor = hwmonitorGUI.MainWindow()

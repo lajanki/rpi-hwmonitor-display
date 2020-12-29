@@ -20,6 +20,8 @@ import subscriber
 import publisher
 
 
+logger = logging.getLogger()
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -211,8 +213,9 @@ class MainWindow(QMainWindow):
         try:
             readings = subscriber.pull_message()
             self.update_readings(readings)
+            logger.debug(readings)
         except DeadlineExceeded:
-            logging.warning("Nothing received from from topic.")
+            logger.warning("Nothing received from from topic.")
             return
 
 
