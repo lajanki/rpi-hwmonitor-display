@@ -7,14 +7,15 @@ from dotenv import load_dotenv
 from google.cloud import pubsub_v1
 
 
-
-load_dotenv()
-logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
+BASE = os.path.join(os.path.dirname(__file__), "..")
+load_dotenv(dotenv_path=os.path.join(BASE, ".env"))
 
 PROJECT_ID = os.getenv("PROJECT_ID")
 SUBSCRIPTION_ID = os.getenv("SUBSCRIPTION_ID")
 client = pubsub_v1.SubscriberClient()
 subscription_path = client.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
+
+logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 
 
 def pull_message():

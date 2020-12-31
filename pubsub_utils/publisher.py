@@ -11,7 +11,8 @@ from google.cloud import pubsub_v1
 import pynvml
 
 
-load_dotenv()
+BASE = os.path.join(os.path.dirname(__file__), "..")
+load_dotenv(dotenv_path=os.path.join(BASE, ".env"))
 
 PROJECT_ID = os.getenv("PROJECT_ID")
 TOPIC_ID = os.getenv("TOPIC_ID")
@@ -23,6 +24,8 @@ publisher = pubsub_v1.PublisherClient()
 topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
+
+# GPU statistics is based on NVIDIA library, disable if unable to load nvml
 IGNORE_GPU = False
 try:
     pynvml.nvmlInit()
