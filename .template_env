@@ -1,0 +1,6 @@
+# Fill with Pub/Sub topic and subscription names and rename as .env
+PROJECT_ID=
+TOPIC_ID=
+SUBSCRIPTION_ID=
+UPDATE_INTERVAL=    # update interval in seconds
+GOOGLE_APPLICATION_CREDENTIALS=
