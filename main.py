@@ -19,11 +19,11 @@ if __name__ == "__main__":
                         help="debug mode")
     args = parser.parse_args()
 
-    if args.debug:
-        logging.getLogger().setLevel("DEBUG")
-
     app = QApplication(sys.argv)
     hw_monitor = hwmonitorGUI.MainWindow()
+
+    if args.debug:
+        logging.getLogger().setLevel("DEBUG")
 
     if args.fullscreen:
         hw_monitor.showFullScreen()

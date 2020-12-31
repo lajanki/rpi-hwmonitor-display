@@ -16,8 +16,7 @@ from PyQt5.QtWidgets import (
 )
 import pyqtgraph as pg
 
-import subscriber
-import publisher
+from pubsub_utils import subscriber, publisher
 
 
 logger = logging.getLogger()
@@ -59,7 +58,7 @@ class MainWindow(QMainWindow):
 
         # Close button, top right
         close_button = QPushButton("Close ")
-        close_button.setIcon(QIcon("close.png"))
+        close_button.setIcon(QIcon("resources/iconfinder_Close_1891023.png"))
         close_button.setLayoutDirection(Qt.RightToLeft)
         cpu_grid.addWidget(close_button, 0, 4)
         close_button.clicked.connect(self.stop_thread_and_exit)
@@ -189,6 +188,7 @@ class MainWindow(QMainWindow):
 
         self.resize(620, 420)
         self.setWindowTitle("HWMonitor")
+        self.setWindowIcon(QIcon("resources/iconfinder_gnome-system-monitor_23964.png"))
         self.center()
         
         self.timer = QTimer(self)
