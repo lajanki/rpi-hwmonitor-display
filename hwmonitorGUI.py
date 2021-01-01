@@ -16,7 +16,8 @@ from PyQt5.QtWidgets import (
 )
 import pyqtgraph as pg
 
-from pubsub_utils import subscriber, publisher
+from pubsub_utils import subscriber
+from pubsub_utils.publisher import UPDATE_INTERVAL
 
 
 logger = logging.getLogger()
@@ -195,7 +196,7 @@ class MainWindow(QMainWindow):
         self.pull()
         self.timer.timeout.connect(self.pull)
 
-        timer_wait_ms = publisher.UPDATE_INTERVAL * 1000
+        timer_wait_ms = UPDATE_INTERVAL * 1000
         self.timer.start(timer_wait_ms)
 
         self.show()
@@ -237,12 +238,15 @@ class MainWindow(QMainWindow):
     def _update_cpu(self, readings):
         for i, qlcd in enumerate(self.cpu_utilization_reading):
             qlcd.display(readings["cpu"]["utilization"][i])
+            self._check_and_set_qlcd_color(qlcd, 80)
 
         for i, qlcd in enumerate(self.cpu_frequency_readings):
             qlcd.display(readings["cpu"]["freq"][i])
 
         for i, qlcd in enumerate(self.cpu_temperature_readings):
             qlcd.display(readings["cpu"]["temperature"][i])
+            self._check_and_set_qlcd_color(qlcd, 80)
+
 
     def _update_ram(self, readings):
         used = int(readings["ram"]["used"] / readings["ram"]["total"] * 100)
@@ -269,3 +273,12 @@ class MainWindow(QMainWindow):
 
         self.gpu_utilization_label.setText("{:d}%".format(utilization))
         self.gpu_temp_label.setText("{}°C".format(temperature))
+
+    def _check_and_set_qlcd_color(self, qlcd, threshold):
+        """Change specified QLCDNumber color between red and white based on
+        current value.
+        """
+        if qlcd.intValue() > threshold:
+            qlcd.setStyleSheet("QLCDNumber { color: red }")
+        else:
+            qlcd.setStyleSheet("QLCDNumber { color: white }")

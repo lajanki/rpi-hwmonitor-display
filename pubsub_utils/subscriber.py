@@ -60,4 +60,3 @@ def _log_message(message):
 
 if __name__ == "__main__":
     listen_for_messages(_log_message)
-    #print(pull_message())

@@ -15,7 +15,3 @@ QLabel {
   font-size: 16pt;
   border: 1px solid black;
 }
-
-QWidget#main_window1 {
-  background-color: black;
-}
