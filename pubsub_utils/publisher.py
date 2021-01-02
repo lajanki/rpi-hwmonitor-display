@@ -1,27 +1,20 @@
 import json
-import os
 import threading
 import argparse
 import logging
 
-from dotenv import load_dotenv
 import psutil
 import gpustat
 from google.cloud import pubsub_v1
 import pynvml
 
+import pubsub_utils
 
-BASE = os.path.join(os.path.dirname(__file__), "..")
-load_dotenv(dotenv_path=os.path.join(BASE, ".env"))
-
-PROJECT_ID = os.getenv("PROJECT_ID")
-TOPIC_ID = os.getenv("TOPIC_ID")
-UPDATE_INTERVAL = int(os.getenv("UPDATE_INTERVAL", "30"))
 
 publisher = pubsub_v1.PublisherClient()
 # The `topic_path` method creates a fully qualified identifier
 # in the form `projects/{PROJECT_ID}/topics/{TOPIC_ID}`
-topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
+topic_path = publisher.topic_path(pubsub_utils.PROJECT_ID, pubsub_utils.TOPIC_ID)
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 
@@ -96,7 +89,7 @@ def publish_stats():
     poll()
 
 def poll():
-    threading.Timer(UPDATE_INTERVAL, publish_stats).start()
+    threading.Timer(pubsub_utils.UPDATE_INTERVAL, publish_stats).start()
 
 
 

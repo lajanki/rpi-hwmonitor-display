@@ -1,19 +1,14 @@
-import os
 import json
 import logging
 from concurrent.futures import TimeoutError
 
-from dotenv import load_dotenv
 from google.cloud import pubsub_v1
 
+import pubsub_utils
 
-BASE = os.path.join(os.path.dirname(__file__), "..")
-load_dotenv(dotenv_path=os.path.join(BASE, ".env"))
 
-PROJECT_ID = os.getenv("PROJECT_ID")
-SUBSCRIPTION_ID = os.getenv("SUBSCRIPTION_ID")
 client = pubsub_v1.SubscriberClient()
-subscription_path = client.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
+subscription_path = client.subscription_path(pubsub_utils.PROJECT_ID, pubsub_utils.SUBSCRIPTION_ID)
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 

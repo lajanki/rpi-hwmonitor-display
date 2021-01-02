@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import (
 import pyqtgraph as pg
 
 from pubsub_utils import subscriber
-from pubsub_utils.publisher import UPDATE_INTERVAL
+from pubsub_utils import UPDATE_INTERVAL
 
 
 logger = logging.getLogger()
