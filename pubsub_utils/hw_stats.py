@@ -50,9 +50,9 @@ def _get_cpu_info_psutil():
     """Fetch current CPU core temperature, frequnces and loads using psutil."""
     cpu_temps = psutil.sensors_temperatures()
 
-    temperatures = [item.current for item in cpu_temps["coretemp"] if "Core" in item.label]
-    frequences = psutil.cpu_freq(percpu=True)
-    load = psutil.cpu_percent(percpu=True)
+    temperatures = [int(item.current) for item in cpu_temps["coretemp"] if "Core" in item.label]
+    frequences = [int(item.current) for item in psutil.cpu_freq(percpu=True)]
+    load = list(map(int, psutil.cpu_percent(percpu=True)))
 
     return {"utilization": load, "freq": frequences, "temperature": temperatures }
 
