@@ -6,7 +6,7 @@ import logging
 from google.cloud import pubsub_v1
 
 import pubsub_utils
-import hw_stats
+from pubsub_utils import hw_stats
 
 
 publisher = pubsub_v1.PublisherClient()

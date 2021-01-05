@@ -1,6 +1,5 @@
 import logging
 
-import wmi
 import psutil
 import pynvml
 import gpustat
@@ -27,7 +26,6 @@ def get_ram_info():
         "available": int(mem.available / 1000**2)
     }
 
-
 def get_gpu_info():
     if IGNORE_GPU:
         stats = {
@@ -48,7 +46,6 @@ def get_gpu_info():
 
     return stats
 
-
 def _get_cpu_info_psutil():
     """Fetch current CPU core temperature, frequnces and loads using psutil."""
     cpu_temps = psutil.sensors_temperatures()
@@ -66,6 +63,8 @@ def _get_cpu_info_wmi():
     http://timgolden.me.uk/python/wmi/index.html.
     https://openhardwaremonitor.org/
     """
+    import wmi # Windows only library
+    
     w = wmi.WMI(namespace="root\OpenHardwareMonitor")
     ohm_infos = w.Sensor()
 
