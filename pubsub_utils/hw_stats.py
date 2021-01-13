@@ -7,6 +7,25 @@ import gpustat
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 
+EMPTY_TEMPLATE = {
+    "cpu": {
+        "utilization": [0,0,0,0],
+        "freq": [0,0,0,0],
+        "temperature": [0,0,0,0]
+    },
+    "gpu": {
+        "memory.used": 0,
+        "memory.total": 1,
+        "utilization": 0,
+        "temperature": 0
+    },
+    "ram": {
+        "total": 1,
+        "used": 0,
+        "available": 0
+    }
+}
+
 
 # GPU statistics is based on NVIDIA library, disable if unable to load nvml
 IGNORE_GPU = False

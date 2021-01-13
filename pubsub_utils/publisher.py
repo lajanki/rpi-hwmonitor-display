@@ -17,7 +17,6 @@ topic_path = publisher.topic_path(pubsub_utils.PROJECT_ID, pubsub_utils.TOPIC_ID
 logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 
 
-
 def get_stats():
     """Gather various CPU, GPU and RAM statistics to a dict to be sent
     as pubsub message.
@@ -27,11 +26,13 @@ def get_stats():
     else:
         get_cpu_info = hw_stats._get_cpu_info_psutil
 
-    return {
+    stats = hw_stats.EMPTY_TEMPLATE.copy()
+    stats.update({
         "cpu": get_cpu_info(),
         "ram": hw_stats.get_ram_info(),
         "gpu": hw_stats.get_gpu_info()
-    }
+    })
+    return stats
 
 def publish_stats():
     """Continuously fetch current statistics and publish as message.

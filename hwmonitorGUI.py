@@ -16,8 +16,8 @@ from PyQt5.QtWidgets import (
 )
 import pyqtgraph as pg
 
-from pubsub_utils import subscriber
-from pubsub_utils import UPDATE_INTERVAL
+from pubsub_utils import subscriber, UPDATE_INTERVAL
+from pubsub_utils.hw_stats import EMPTY_TEMPLATE
 
 
 logger = logging.getLogger()
@@ -26,6 +26,7 @@ logger = logging.getLogger()
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.empty_pull_counter = 0
         self.init_ui()
 
     def init_ui(self):
@@ -213,11 +214,21 @@ class MainWindow(QMainWindow):
         """
         try:
             readings = subscriber.pull_message()
-            self.update_readings(readings)
             logger.debug(readings)
+            self.update_readings(readings)
+            self.empty_pull_counter = 0
         except DeadlineExceeded:
-            logger.warning("Nothing received from from topic.")
-            return
+            logger.warning("Nothing received from topic.")
+
+            # If this is the 3rd consecutive empty pull, reset all widgets
+            if self.empty_pull_counter >= 2:
+                logger.warning("Re-initializing charts.")
+                readings = EMPTY_TEMPLATE.copy()
+                self.update_readings(readings)
+                self.empty_pull_counter = 0
+                
+            else:
+                self.empty_pull_counter += 1
 
 
     @pyqtSlot()
