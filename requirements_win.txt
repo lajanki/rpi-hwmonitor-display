@@ -1,0 +1,2 @@
+wmi
+gpustat==1.0.0b1
