@@ -15,7 +15,7 @@ EMPTY_TEMPLATE = {
     },
     "gpu": {
         "memory.used": 0,
-        "memory.total": 1,
+        "memory.total": 1, # non zero value to avoid division by zero
         "utilization": 0,
         "temperature": 0
     },
@@ -49,7 +49,7 @@ def get_gpu_info():
     if IGNORE_GPU:
         stats = {
             "memory.used": 0,
-            "memory.total": 1, # non zero value to avoid division by zero
+            "memory.total": 1,
             "utilization": 0,
             "temperature": 0
         }
