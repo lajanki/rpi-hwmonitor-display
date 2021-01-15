@@ -20,7 +20,7 @@ def pull_message():
             "subscription": subscription_path,
             "max_messages": 1,
         },
-        timeout=1.0
+        timeout=2.0
     )
 
     ack_ids = [msg.ack_id for msg in response.received_messages]
