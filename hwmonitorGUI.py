@@ -45,8 +45,8 @@ class MainWindow(QMainWindow):
         base_layout.addLayout(ram_grid, 1, 0)
         base_layout.addLayout(gpu_grid, 1, 1)
   
-        base_layout.setRowStretch(0, 2)
-        base_layout.setRowStretch(1, 3)
+        base_layout.setRowStretch(0, 7)
+        base_layout.setRowStretch(1, 8)
 
         ### CPU row (top row)
         cpu_title_label = QLabel("CPU", objectName="cpu_title")
@@ -64,6 +64,16 @@ class MainWindow(QMainWindow):
         close_button.setLayoutDirection(Qt.RightToLeft)
         cpu_grid.addWidget(close_button, 0, 4)
         close_button.clicked.connect(self.stop_thread_and_exit)
+
+        # Increase close button size 
+        close_button.setSizePolicy(
+            QSizePolicy.Preferred,
+            QSizePolicy.Expanding
+        )
+        cpu_grid.setRowStretch(0, 3)
+        cpu_grid.setRowStretch(1, 2)
+        cpu_grid.setRowStretch(2, 2)
+        cpu_grid.setRowStretch(3, 2)
 
         self.cpu_utilization_reading = []
         for i in range(4):
@@ -106,12 +116,17 @@ class MainWindow(QMainWindow):
         ram_plot.addItem(self.ram_bg_available)
 
         # Add labels on top of bars 
+        bar_label_font = QFont()
+        bar_label_font.setPixelSize(20)
+
         self.ram_used_bar_label = pg.TextItem("%", anchor=(0.5, 0.5))
         self.ram_used_bar_label.setPos(0, 10)
+        self.ram_used_bar_label.setFont(bar_label_font)
         ram_plot.addItem(self.ram_used_bar_label)
 
         self.ram_available_bar_label = pg.TextItem("%", anchor=(0.5, 0.5))
         self.ram_available_bar_label.setPos(1, 10)
+        self.ram_available_bar_label.setFont(bar_label_font)
         ram_plot.addItem(self.ram_available_bar_label)
 
         ram_plot.setXRange(-0.5, 2.5)
@@ -128,7 +143,7 @@ class MainWindow(QMainWindow):
         Y_MAX = view_range[1][1]
 
         font=QFont()
-        font.setPixelSize(18)
+        font.setPixelSize(22)
 
         self.ram_used_label = pg.TextItem("Used: GB", fill="#660000", anchor=(1,1))
         self.ram_used_label.setFont(font)
@@ -153,10 +168,12 @@ class MainWindow(QMainWindow):
         # Add labels on top of bars 
         self.gpu_used_bar_label = pg.TextItem("%", anchor=(0.5, 0.5))
         self.gpu_used_bar_label.setPos(0, 10)
+        self.gpu_used_bar_label.setFont(bar_label_font)
         gpu_plot.addItem(self.gpu_used_bar_label)
 
         self.gpu_utilization_bar_label = pg.TextItem("%", anchor=(0.5, 0.5))
         self.gpu_utilization_bar_label.setPos(1, 10)
+        self.gpu_utilization_bar_label.setFont(bar_label_font)
         gpu_plot.addItem(self.gpu_utilization_bar_label)
 
         gpu_plot.setXRange(-0.5, 2.5)
@@ -174,7 +191,7 @@ class MainWindow(QMainWindow):
 
         self.gpu_utilization_label = pg.TextItem("%", fill="#660000", anchor=(1,1))
         self.gpu_utilization_label.setFont(font)
-        self.gpu_utilization_label.setPos(X_MAX, 0.7 * Y_MAX)
+        self.gpu_utilization_label.setPos(X_MAX, 0.73 * Y_MAX)
         gpu_plot.addItem(self.gpu_utilization_label)  
 
         self.gpu_temp_label = pg.TextItem("°C", fill="#660000", anchor=(1,1))
@@ -218,11 +235,11 @@ class MainWindow(QMainWindow):
             self.update_readings(readings)
             self.empty_pull_counter = 0
         except DeadlineExceeded:
-            logger.warning("Nothing received from topic.")
+            logger.debug("Nothing received from topic.")
 
             # If this is the 3rd consecutive empty pull, reset all widgets
             if self.empty_pull_counter >= 2:
-                logger.warning("Re-initializing charts.")
+                logger.info("Nothing received from topic for a while, resetting charts.")
                 readings = EMPTY_TEMPLATE.copy()
                 self.update_readings(readings)
                 self.empty_pull_counter = 0
