@@ -3,4 +3,5 @@ venv/
 .env
 .vscode
 hwmonitor_service_account_key.json
-readings.json
+*.whl
+

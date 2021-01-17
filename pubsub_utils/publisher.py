@@ -22,6 +22,8 @@ def get_stats():
     as pubsub message.
     """
     if os.name == "nt":
+        import pythoncom
+        pythoncom.CoInitialize()
         get_cpu_info = hw_stats._get_cpu_info_wmi
     else:
         get_cpu_info = hw_stats._get_cpu_info_psutil

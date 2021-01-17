@@ -145,7 +145,7 @@ class MainWindow(QMainWindow):
         font=QFont()
         font.setPixelSize(22)
 
-        self.ram_used_label = pg.TextItem("Used: GB", fill="#660000", anchor=(1,1))
+        self.ram_used_label = pg.TextItem("GB", fill="#660000", anchor=(1,1))
         self.ram_used_label.setFont(font)
         self.ram_used_label.setPos(X_MAX, 0.7 * Y_MAX)
         ram_plot.addItem(self.ram_used_label)  
@@ -287,7 +287,7 @@ class MainWindow(QMainWindow):
         self.ram_available_bar_label.setText("{}%".format(available))
 
         # Update used GB label
-        self.ram_used_label.setText("Used: {:.1f}GB".format(readings["ram"]["used"]/1000)) 
+        self.ram_used_label.setText("{:.1f}GB".format(readings["ram"]["used"]/1000)) 
 
     def _update_gpu(self, readings):
         used = int(readings["gpu"]["memory.used"] / readings["gpu"]["memory.total"] * 100)
