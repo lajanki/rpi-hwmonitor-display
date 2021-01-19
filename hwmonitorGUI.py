@@ -1,5 +1,6 @@
 import os.path
 import logging
+import time
 
 from google.api_core.exceptions import DeadlineExceeded
 from PyQt5.QtGui import QFont, QIcon
@@ -27,6 +28,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.empty_pull_counter = 0
+        subscriber.seek_to_time(int(time.time()))
         self.init_ui()
 
     def init_ui(self):
@@ -210,14 +212,12 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon("resources/iconfinder_gnome-system-monitor_23964.png"))
         self.center()
         
-        self.timer = QTimer(self)
         self.pull()
+        self.timer = QTimer(self)
         self.timer.timeout.connect(self.pull)
 
         timer_wait_ms = UPDATE_INTERVAL * 1000
         self.timer.start(timer_wait_ms)
-
-        self.show()
 
     def center(self):
         qr = self.frameGeometry()

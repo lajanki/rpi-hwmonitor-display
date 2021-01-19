@@ -21,6 +21,7 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     hw_monitor = hwmonitorGUI.MainWindow()
+    hw_monitor.show()
 
     if args.debug:
         logging.getLogger().setLevel("DEBUG")

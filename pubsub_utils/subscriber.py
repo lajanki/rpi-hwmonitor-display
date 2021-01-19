@@ -47,6 +47,17 @@ def listen_for_messages(callback):
         except TimeoutError:
             streaming_pull_future.cancel()
 
+def seek_to_time(time):
+    """Seek the subscription to a given timestamp in seconds."""
+    params = {
+        "subscription": subscription_path,
+        "time": {
+            "seconds": time
+        }
+    }
+    seek_request = pubsub_v1.types.SeekRequest(params)
+    client.seek(seek_request)
+
 def _log_message(message):
     data = json.loads(message.data.decode("utf-8"))
     logging.info(data)
