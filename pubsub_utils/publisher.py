@@ -43,8 +43,8 @@ def publish_stats():
     data = json.dumps(get_stats()).encode("utf-8")
     # When you publish a message, the client returns a future.
     future = publisher.publish(topic_path, data)
-    logging.info(future.result())
-
+    # Log bytes published
+    logging.info("%sB", len(data))
     poll()
 
 def poll():
