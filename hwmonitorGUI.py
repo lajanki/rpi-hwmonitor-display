@@ -206,9 +206,10 @@ class MainWindow(QMainWindow):
         self.gpu_temp_label.setFont(font)
         self.gpu_temp_label.setPos(X_MAX, 0.5 * Y_MAX)
         gpu_plot.addItem(self.gpu_temp_label)  
-
         gpu_grid.addWidget(gpu_plot, 0, 0)
 
+        self.pull_timer = QTimer(self)
+        self.setup_pubsub_pull()
 
         with open("style.qss") as f:
            self.setStyleSheet(f.read())
@@ -218,43 +219,41 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon("resources/iconfinder_gnome-system-monitor_23964.png"))
         self.center()
         
-        self.pull()
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.pull)
-
-        timer_wait_ms = UPDATE_INTERVAL * 1000
-        self.timer.start(timer_wait_ms)
-
     def center(self):
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    def pull(self):
-        """Pull a single message from the topic.
+    def setup_pubsub_pull(self):
+        """Setup a Pub/Sub message pull every UPDATE_INTERVAL seconds.
         Note that this runs on the same thread as the GUI.
         """
-        try:
-            readings = subscriber.pull_message()
-            logger.debug(readings)
-            self.update_readings(readings)
-            self.empty_pull_counter = 0
-        except DeadlineExceeded:
-            logger.debug("Nothing received from topic.")
-
-            # If this is the 3rd consecutive empty pull, reset all widgets
-            if self.empty_pull_counter >= 2:
-                logger.info("Nothing received from topic for a while, resetting charts.")
-                readings = EMPTY_TEMPLATE.copy()
+        def pull():
+            try:
+                readings = subscriber.pull_message()
+                logger.debug(readings)
                 self.update_readings(readings)
                 self.empty_pull_counter = 0
-                
-            else:
-                self.empty_pull_counter += 1
+            except DeadlineExceeded:
+                logger.debug("Nothing received from topic.")
+
+                # If this is the 3rd consecutive empty pull, reset all widgets
+                if self.empty_pull_counter >= 2:
+                    logger.info("Nothing received from topic for a while, resetting charts.")
+                    readings = EMPTY_TEMPLATE.copy()
+                    self.update_readings(readings)
+                    self.empty_pull_counter = 0
+                    
+                else:
+                    self.empty_pull_counter += 1
+
+        pull()
+        self.pull_timer.timeout.connect(pull)
+        self.pull_timer.start(UPDATE_INTERVAL * 1000)
 
     def setup_clock_polling(self):
-        """Set the main LCD display to the current time and start polling for
+        """Set clock QLCD display to the current time and start polling for
         with 1 second intervals.
         """
         def tick():
@@ -269,7 +268,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def stop_thread_and_exit(self):
         """Stop any running SubscriberThread and exit the application."""
-        self.timer.stop()
+        self.pull_timer.stop()
         self.close()
 
     @pyqtSlot(dict)
