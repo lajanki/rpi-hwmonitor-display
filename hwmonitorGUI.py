@@ -32,7 +32,7 @@ class MainWindow(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
-        main_widget = QWidget(objectName="main_window") # dummy widget to hold a layout
+        main_widget = QWidget() # dummy widget to hold a layout
         main_widget.setAutoFillBackground(True)
         self.setCentralWidget(main_widget)
         
@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
         base_layout.setRowStretch(1, 8)
 
         ### CPU row (top row)
-        cpu_title_label = QLabel("CPU", objectName="cpu_title")
+        cpu_title_label = QLabel("CPU", objectName="cpu_title_label")
         cpu_grid.addWidget(cpu_title_label, 0, 0)
 
         cpu_utilization_label = QLabel("%")
@@ -77,6 +77,12 @@ class MainWindow(QMainWindow):
         cpu_grid.setRowStretch(2, 2)
         cpu_grid.setRowStretch(3, 2)
 
+        self.clock_lcd = QLCDNumber(5, self, objectName="clock_qlcd")
+        self.clock_lcd.setSegmentStyle(QLCDNumber.Flat)
+        cpu_grid.addWidget(self.clock_lcd, 0, 2, 1, 2)
+        self.setup_clock_polling()
+
+        # CPU satusgrid
         self.cpu_utilization_reading = []
         for i in range(4):
             qlcd = QLCDNumber(self)
@@ -247,6 +253,18 @@ class MainWindow(QMainWindow):
             else:
                 self.empty_pull_counter += 1
 
+    def setup_clock_polling(self):
+        """Set the main LCD display to the current time and start polling for
+        with 1 second intervals.
+        """
+        def tick():
+            s = time.strftime("%H:%M")
+            self.clock_lcd.display(s)
+
+        tick()
+        _timer = QTimer(self)
+        _timer.timeout.connect(tick)
+        _timer.start(1000)
 
     @pyqtSlot()
     def stop_thread_and_exit(self):
