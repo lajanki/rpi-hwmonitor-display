@@ -118,8 +118,8 @@ class MainWindow(QMainWindow):
         x_labeled = {0: "used", 1: "available"}
         x = list(x_labeled.keys())
 
-        self.ram_bg_used = pg.BarGraphItem(x=[x[0]], height=[0], width=0.6, brush="#134d00")
-        self.ram_bg_available = pg.BarGraphItem(x=[x[1]], height=[0], width=0.6, brush="#269900")
+        self.ram_bg_used = pg.BarGraphItem(x=[x[0]], height=[0], width=0.6, brush="#0E1F06")
+        self.ram_bg_available = pg.BarGraphItem(x=[x[1]], height=[0], width=0.6, brush="#134d00")
         ram_plot.addItem(self.ram_bg_used)
         ram_plot.addItem(self.ram_bg_available)
 

@@ -6,19 +6,20 @@ QLCDNumber {
 }
 
 QLCDNumber#clock_qlcd {
-  background-color: #242424;
-  color: white;
+  background-color: #929292;
+  color: black;
   font-weight: 500;
   border: 1px;
 }
 
-QLabel#cpu_title_label {
+QLabel {
   font-weight: bold;
-  font-size: 20pt;
-  border: 0px solid black;
+  font-size: 18pt;
+  border: 1px solid black;
 }
 
-QLabel {
-  font-size: 16pt;
-  border: 1px solid black;
+QLabel#cpu_title_label {
+  font-weight: bold;
+  font-size: 22pt;
+  border: 0px solid black;
 }
