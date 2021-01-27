@@ -79,7 +79,7 @@ class MainWindow(QMainWindow):
 
         self.clock_lcd = QLCDNumber(5, self, objectName="clock_qlcd")
         self.clock_lcd.setSegmentStyle(QLCDNumber.Flat)
-        cpu_grid.addWidget(self.clock_lcd, 0, 2, 1, 2)
+        cpu_grid.addWidget(self.clock_lcd, 0, 1, 1, 3)
         self.setup_clock_polling()
 
         # CPU satusgrid
