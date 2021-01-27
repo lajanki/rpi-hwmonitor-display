@@ -2,6 +2,7 @@ import os
 import json
 import threading
 import logging
+import time
 
 from google.cloud import pubsub_v1
 
@@ -40,15 +41,37 @@ def publish_stats():
     """Continuously fetch current statistics and publish as message.
     Publish a new message every UPDATE_INTERVAL seconds.
     """
-    data = json.dumps(get_stats()).encode("utf-8")
-    # When you publish a message, the client returns a future.
-    future = publisher.publish(topic_path, data)
-    # Log bytes published
-    logging.info("%sB", len(data))
-    poll()
+    total_bytes_generated = 0
+    total_bytes_processed = 0
+    while True:
+        for i in range(10):
+            data = json.dumps(get_stats()).encode("utf-8")
+            future = publisher.publish(topic_path, data)
+            logging.info("%sB", len(data))
+            total_bytes_generated += len(data)
+            # # pub/sub processes a minimum of 1000B per push and pull
+            # https://cloud.google.com/pubsub/pricing#:~:text=A%20minimum%20of%201000%20bytes,assessed%20regardless%20of%20message%20size.
+            total_bytes_processed += 1000  
+            time.sleep(pubsub_utils.UPDATE_INTERVAL)
+        
+        # Log total bytes generated every 10th publish  
+        logging.info("Total bytes generated: %sB", total_bytes_generated)
+        logging.info("Total bytes published: %sB", total_bytes_processed)
 
-def poll():
-    threading.Timer(pubsub_utils.UPDATE_INTERVAL, publish_stats).start()
+
+# def publish_stats():
+#     """Continuously fetch current statistics and publish as message.
+#     Publish a new message every UPDATE_INTERVAL seconds.
+#     """
+#     data = json.dumps(get_stats()).encode("utf-8")
+#     # When you publish a message, the client returns a future.
+#     future = publisher.publish(topic_path, data)
+#     # Log bytes published
+#     logging.info("%sB", len(data))
+#     poll()
+
+# def poll():
+#     threading.Timer(pubsub_utils.UPDATE_INTERVAL, publish_stats).start()
 
 
 
