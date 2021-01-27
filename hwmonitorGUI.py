@@ -82,34 +82,25 @@ class MainWindow(QMainWindow):
         cpu_grid.addWidget(self.clock_lcd, 0, 1, 1, 3)
         self.setup_clock_polling()
 
-        # CPU satusgrid
-        self.cpu_utilization_reading = []
-        for i in range(4):
-            qlcd = QLCDNumber(self)
-            qlcd.setDigitCount(2)
-            qlcd.display(0)
-            cpu_grid.addWidget(qlcd, 1, i+1)
-            qlcd.setSegmentStyle(QLCDNumber.Flat)
-            self.cpu_utilization_reading.append(qlcd)
-
-        self.cpu_frequency_readings = []
-        for i in range(4):
-            qlcd = QLCDNumber(self)
-            qlcd.setDigitCount(4)
-            qlcd.display(0)
-            cpu_grid.addWidget(qlcd, 2, i+1)
-            qlcd.setSegmentStyle(QLCDNumber.Flat)
-            self.cpu_frequency_readings.append(qlcd)
-
-        self.cpu_temperature_readings = []
-        for i in range(4):
-            qlcd = QLCDNumber(self)
-            qlcd.setDigitCount(2)
-            qlcd.display(0)
-            cpu_grid.addWidget(qlcd, 3, i+1)
-            qlcd.setSegmentStyle(QLCDNumber.Flat)
-            self.cpu_temperature_readings.append(qlcd)
-
+        ### CPU satusgrid
+        # Define per row parameters for utilization, frequency and temperature QLCDNumber widgets
+        grid_row = [1, 2, 3]
+        digitCounts = [2, 4, 2]
+        self.cpu_util, self.cpu_freq, self.cpu_temp = [], [], []
+        containers = self.cpu_util, self.cpu_freq, self.cpu_temp
+        
+        params = zip(grid_row, digitCounts)
+        for i, token in enumerate(params):
+            for col in range(1, 5):
+                qlcd = QLCDNumber(self)
+                qlcd.setDigitCount(token[1])
+                qlcd.display(0)
+                qlcd.setSegmentStyle(QLCDNumber.Flat)
+                cpu_grid.addWidget(qlcd, token[0], col)
+                
+                # save a reference
+                containers[i].append(qlcd)
+        
 
         ### RAM section (bottom left column)
         ram_plot = pg.plot()
@@ -281,14 +272,14 @@ class MainWindow(QMainWindow):
         self._update_ram(readings)
 
     def _update_cpu(self, readings):
-        for i, qlcd in enumerate(self.cpu_utilization_reading):
+        for i, qlcd in enumerate(self.cpu_util):
             qlcd.display(readings["cpu"]["utilization"][i])
             self._check_and_set_qlcd_color(qlcd, 80)
 
-        for i, qlcd in enumerate(self.cpu_frequency_readings):
+        for i, qlcd in enumerate(self.cpu_freq):
             qlcd.display(readings["cpu"]["freq"][i])
 
-        for i, qlcd in enumerate(self.cpu_temperature_readings):
+        for i, qlcd in enumerate(self.cpu_temp):
             qlcd.display(readings["cpu"]["temperature"][i])
             self._check_and_set_qlcd_color(qlcd, 80)
 
