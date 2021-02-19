@@ -22,19 +22,26 @@ def get_stats():
     """Gather various CPU, GPU and RAM statistics to a dict to be sent
     as pubsub message.
     """
+    stats = hw_stats.EMPTY_TEMPLATE.copy()
+
     if os.name == "nt":
         import pythoncom
         pythoncom.CoInitialize()
-        get_cpu_info = hw_stats._get_cpu_info_wmi
-    else:
-        get_cpu_info = hw_stats._get_cpu_info_psutil
 
-    stats = hw_stats.EMPTY_TEMPLATE.copy()
-    stats.update({
-        "cpu": get_cpu_info(),
-        "ram": hw_stats.get_ram_info(),
-        "gpu": hw_stats.get_gpu_info()
-    })
+        cpu_gpu = hw_stats._get_cpu_and_gpu_info_wmi()
+        stats.update({
+            "cpu": cpu_gpu["cpu"],
+            "gpu": cpu_gpu["gpu"],
+            "ram": hw_stats.get_ram_info()
+        })
+
+    else:
+        stats.update({
+            "cpu": hw_stats._get_cpu_info_psutil(),
+            "ram": hw_stats.get_ram_info(),
+            "gpu": hw_stats.get_gpu_info()
+        })
+        
     return stats
 
 def publish_stats():
