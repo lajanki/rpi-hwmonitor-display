@@ -56,24 +56,8 @@ def publish_stats():
         
         # Log total bytes generated every 10th publish  
         logging.info("Total bytes generated: %sB", total_bytes_generated)
-        logging.info("Total bytes published: %sB", total_bytes_processed)
-
-
-# def publish_stats():
-#     """Continuously fetch current statistics and publish as message.
-#     Publish a new message every UPDATE_INTERVAL seconds.
-#     """
-#     data = json.dumps(get_stats()).encode("utf-8")
-#     # When you publish a message, the client returns a future.
-#     future = publisher.publish(topic_path, data)
-#     # Log bytes published
-#     logging.info("%sB", len(data))
-#     poll()
-
-# def poll():
-#     threading.Timer(pubsub_utils.UPDATE_INTERVAL, publish_stats).start()
-
-
+        logging.info("Total bytes published: %sB", round(total_bytes_processed/1000**2, 2))
+        
 
 if __name__ == "__main__":
     publish_stats()
