@@ -6,7 +6,7 @@ System statistics monitored include:
  * used and available RAM,
  * Nvidia GPU core utilization and temperature and memory utilization (Non Nvidia cards are not supported)
 
-<sub>(*)Currently number of CPU cores read is fixed to 4, running this on a different CPU configuration will likely crash the monitor.</sub>
+<sub>(*)Only the first 4 CPU cores are displayed.</sub>
 
 
 ![Main window](hwmonitor.png)
