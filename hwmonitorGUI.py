@@ -83,7 +83,8 @@ class MainWindow(QMainWindow):
         self.setup_clock_polling()
 
         ### CPU satusgrid
-        # Define per row parameters for utilization, frequency and temperature QLCDNumber widgets
+        # Define per row parameters for utilization, frequency and temperature QLCDNumber widgets,
+        # 4 QLCDNumbers per row
         grid_row = [1, 2, 3]
         digitCounts = [2, 4, 2]
         self.cpu_util, self.cpu_freq, self.cpu_temp = [], [], []
@@ -273,17 +274,32 @@ class MainWindow(QMainWindow):
 
     def _update_cpu(self, readings):
         for i, qlcd in enumerate(self.cpu_util):
-            qlcd.display(readings["cpu"]["utilization"][i])
+            val = 0
+            try:
+                val = readings["cpu"]["utilization"][i]
+            except IndexError:
+                pass
+            qlcd.display(val)
             self._check_and_set_qlcd_color(qlcd, 80)
 
         for i, qlcd in enumerate(self.cpu_freq):
-            qlcd.display(readings["cpu"]["freq"][i])
-
+            val = 0
+            try:
+                val = readings["cpu"]["freq"][i]
+            except IndexError:
+                pass
+            qlcd.display(val)
+      
         for i, qlcd in enumerate(self.cpu_temp):
-            qlcd.display(readings["cpu"]["temperature"][i])
+            val = 0
+            try:
+                val = readings["cpu"]["temperature"][i]
+            except IndexError:
+                pass
+            qlcd.display(val)
             self._check_and_set_qlcd_color(qlcd, 80)
 
-
+   
     def _update_ram(self, readings):
         used = int(readings["ram"]["used"] / readings["ram"]["total"] * 100)
         available = int(readings["ram"]["available"] / readings["ram"]["total"] * 100)

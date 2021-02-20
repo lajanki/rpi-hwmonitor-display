@@ -22,9 +22,9 @@ except pynvml.NVMLError_LibraryNotFound as e:
 
 EMPTY_TEMPLATE = {
     "cpu": {
-        "utilization": [0,0,0,0],
-        "freq": [0,0,0,0],
-        "temperature": [0,0,0,0]
+        "utilization": [],
+        "freq": [],
+        "temperature": []
     },
     "gpu": {
         "memory.used": 0,
