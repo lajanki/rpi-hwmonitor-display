@@ -85,23 +85,32 @@ class MainWindow(QMainWindow):
         ### CPU satusgrid
         # Define per row parameters for utilization, frequency and temperature QLCDNumber widgets,
         # 4 QLCDNumbers per row
-        grid_row = [1, 2, 3]
-        digitCounts = [2, 4, 2]
-        self.cpu_util, self.cpu_freq, self.cpu_temp = [], [], []
-        containers = self.cpu_util, self.cpu_freq, self.cpu_temp
-        
-        params = zip(grid_row, digitCounts)
-        for i, token in enumerate(params):
-            for col in range(1, 5):
+        NUM_QLCD_PER_ROW = 4
+        self.cpu_qlcds = {
+            "utilization": {
+                "row": 1,
+                "digit_count": 2,
+                "qlcd": []
+            },
+            "frequency": {
+                "row": 2,
+                "digit_count": 4,
+                "qlcd": []
+            },
+            "temperature": {
+                "row": 3,
+                "digit_count": 2,
+                "qlcd": []
+            }
+        }
+        for key in self.cpu_qlcds:
+            for col in range(1, NUM_QLCD_PER_ROW+1):
                 qlcd = QLCDNumber(self)
-                qlcd.setDigitCount(token[1])
+                qlcd.setDigitCount(self.cpu_qlcds[key]["digit_count"])
                 qlcd.display(0)
                 qlcd.setSegmentStyle(QLCDNumber.Flat)
-                cpu_grid.addWidget(qlcd, token[0], col)
-                
-                # save a reference
-                containers[i].append(qlcd)
-        
+                cpu_grid.addWidget(qlcd, self.cpu_qlcds[key]["row"], col)
+                self.cpu_qlcds[key]["qlcd"].append(qlcd)
 
         ### RAM section (bottom left column)
         ram_plot = pg.plot()
@@ -273,32 +282,15 @@ class MainWindow(QMainWindow):
         self._update_ram(readings)
 
     def _update_cpu(self, readings):
-        for i, qlcd in enumerate(self.cpu_util):
-            val = 0
-            try:
-                val = readings["cpu"]["utilization"][i]
-            except IndexError:
-                pass
-            qlcd.display(val)
-            self._check_and_set_qlcd_color(qlcd, 80)
-
-        for i, qlcd in enumerate(self.cpu_freq):
-            val = 0
-            try:
-                val = readings["cpu"]["freq"][i]
-            except IndexError:
-                pass
-            qlcd.display(val)
-      
-        for i, qlcd in enumerate(self.cpu_temp):
-            val = 0
-            try:
-                val = readings["cpu"]["temperature"][i]
-            except IndexError:
-                pass
-            qlcd.display(val)
-            self._check_and_set_qlcd_color(qlcd, 80)
-
+        for key in self.cpu_qlcds:
+            for i, qlcd in enumerate(self.cpu_qlcds[key]["qlcd"]):
+                try:
+                    val = readings["cpu"][key][i]
+                except IndexError:
+                    val = 0
+                qlcd.display(val)
+                if key in ("utilization", "temperature"):
+                    self._check_and_set_qlcd_color(qlcd, 80)       
    
     def _update_ram(self, readings):
         used = int(readings["ram"]["used"] / readings["ram"]["total"] * 100)

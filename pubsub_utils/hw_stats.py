@@ -23,7 +23,7 @@ except pynvml.NVMLError_LibraryNotFound as e:
 EMPTY_TEMPLATE = {
     "cpu": {
         "utilization": [],
-        "freq": [],
+        "frequency": [],
         "temperature": []
     },
     "gpu": {
@@ -75,7 +75,7 @@ def _get_cpu_info_psutil():
     frequences = [int(item.current) for item in psutil.cpu_freq(percpu=True)]
     load = list(map(int, psutil.cpu_percent(percpu=True)))
 
-    return {"utilization": load, "freq": frequences, "temperature": temperatures }
+    return {"utilization": load, "frequency": frequences, "temperature": temperatures }
 
 def _get_cpu_and_gpu_info_wmi():
     """Fetch current CPU and GPU using wmi (Windows Management Instrumentation) and OpenHardwareMonitor.
@@ -87,7 +87,7 @@ def _get_cpu_and_gpu_info_wmi():
     """
     cpu = {
         "utilization": [],
-        "freq": [],
+        "frequency": [],
         "temperature": []
     }
     gpu = {
@@ -106,10 +106,7 @@ def _get_cpu_and_gpu_info_wmi():
 
         elif sensor.SensorType == "Clock":
             if sensor.Name.startswith("CPU Core #"):
-                cpu["freq"].append((int(sensor.Value), int(sensor.Name[-1])))
-
-            #if sensor.Name == "GPU Core":
-            #    gpu["freq"] = int(sensor.value)
+                cpu["frequency"].append((int(sensor.Value), int(sensor.Name[-1])))
 
         elif sensor.SensorType == "Load":
             if sensor.Name.startswith("CPU Core #"):
