@@ -63,7 +63,7 @@ def publish_stats():
         
         # Log total bytes generated every 10th publish  
         logging.info("Total bytes generated: %sB", total_bytes_generated)
-        logging.info("Total bytes published: %sB", round(total_bytes_processed/1000**2, 2))
+        logging.info("Total megabytes published: %sMB", round(total_bytes_processed/1000**2, 2))
         
 
 if __name__ == "__main__":
