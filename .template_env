@@ -1,6 +1,7 @@
-# Fill with Pub/Sub topic and subscription names and rename as .env
+# Fill with Pub/Sub topic and subscription names and rename the file as .env
+
 PROJECT_ID=
 TOPIC_ID=
 SUBSCRIPTION_ID=
-UPDATE_INTERVAL=2    # update interval in seconds
-GOOGLE_APPLICATION_CREDENTIALS=
+UPDATE_INTERVAL=2                   # update interval in seconds
+GOOGLE_APPLICATION_CREDENTIALS=     # path to GCP service account json file

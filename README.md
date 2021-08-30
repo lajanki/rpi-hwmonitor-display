@@ -47,7 +47,7 @@ Running the poller on Windows requires some additional preparations. The library
 
 Next, install Windows only dependencies with
 ```
-pip install -r requirements_win.txt
+pip install -r requirements-win.txt
 ```
 
 You can now run `hw_poller.py` with the above command.
