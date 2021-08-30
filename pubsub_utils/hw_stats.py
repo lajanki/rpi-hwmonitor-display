@@ -129,4 +129,4 @@ def _get_cpu_and_gpu_info_wmi():
     for key in cpu:
         cpu[key] = [t[0] for t in sorted(cpu[key], key=lambda token: token[1])]
 
-    return {"cpu": cpu, "gpu": gpu }
+    return {"cpu": cpu, "gpu": gpu}

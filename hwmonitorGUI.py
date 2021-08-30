@@ -32,7 +32,7 @@ class MainWindow(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
-        main_widget = QWidget() # dummy widget to hold a layout
+        main_widget = QWidget()
         main_widget.setAutoFillBackground(True)
         self.setCentralWidget(main_widget)
         
