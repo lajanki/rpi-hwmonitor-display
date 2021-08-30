@@ -17,8 +17,9 @@ from PyQt5.QtWidgets import (
 )
 import pyqtgraph as pg
 
-from pubsub_utils import subscriber, UPDATE_INTERVAL
+from pubsub_utils import UPDATE_INTERVAL
 from pubsub_utils.hw_stats import EMPTY_TEMPLATE
+from pubsub_utils.subscriber import Subscriber
 
 
 logger = logging.getLogger()
@@ -27,8 +28,7 @@ logger = logging.getLogger()
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.empty_pull_counter = 0
-        subscriber.seek_to_time(int(time.time()))
+        self.subscriber = Subscriber()
         self.init_ui()
 
     def init_ui(self):
@@ -230,25 +230,27 @@ class MainWindow(QMainWindow):
         """Setup a Pub/Sub message pull every UPDATE_INTERVAL seconds.
         Note that this runs on the same thread as the GUI.
         """
+        empty_pull_counter = 0
+
         def pull():
+            nonlocal empty_pull_counter
             try:
-                readings = subscriber.pull_message()
+                readings = self.subscriber.pull_message()
                 logger.debug(readings)
                 self.update_readings(readings)
-                self.empty_pull_counter = 0
+                empty_pull_counter = 0
             except DeadlineExceeded:
                 logger.debug("Nothing received from topic.")
 
                 # If this is the 3rd consecutive empty pull, reset all widgets
-                if self.empty_pull_counter >= 2:
+                if empty_pull_counter >= 2:
                     logger.info("Nothing received from topic for a while, resetting charts.")
-                    readings = EMPTY_TEMPLATE.copy()
-                    self.update_readings(readings)
-                    self.empty_pull_counter = 0
-                    
+                    self.update_readings(EMPTY_TEMPLATE.copy())
+                    empty_pull_counter = 0
                 else:
-                    self.empty_pull_counter += 1
+                    empty_pull_counter += 1
 
+        self.subscriber.seek_to_time(int(time.time()))
         pull()
         self.pull_timer.timeout.connect(pull)
         self.pull_timer.start(UPDATE_INTERVAL * 1000)
