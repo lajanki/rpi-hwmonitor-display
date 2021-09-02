@@ -58,10 +58,11 @@ class Subscriber:
                 # When `timeout` is not set, result() will block indefinitely,
                 # unless an exception is encountered first.
                 streaming_pull_future.result(timeout=None)
-            except TimeoutError:
-                streaming_pull_future.cancel()
+            except TimeoutError as e:   
+                streaming_pull_future.cancel()  # Trigger the shutdown.
+                streaming_pull_future.result()  # Block until the shutdown is complete.
 
-    def _log_message(message):
+    def _log_message(self, message):
         data = json.loads(message.data.decode("utf-8"))
         logging.info(data)
         message.ack()

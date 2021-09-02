@@ -1,10 +1,9 @@
-import os.path
 import logging
 import time
 
 from google.api_core.exceptions import DeadlineExceeded
 from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtCore import Qt, QTimer, pyqtSlot
+from PyQt5.QtCore import Qt, QObject, QThread, QTimer, pyqtSlot, pyqtSignal
 from PyQt5.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -218,42 +217,30 @@ class MainWindow(QMainWindow):
         self.resize(620, 420)
         self.setWindowTitle("HWMonitor")
         self.setWindowIcon(QIcon("resources/iconfinder_gnome-system-monitor_23964.png"))
-        self.center()
+        self._center()
         
-    def center(self):
+    def _center(self):
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
     def setup_pubsub_pull(self):
-        """Setup a Pub/Sub message pull every UPDATE_INTERVAL seconds.
-        Note that this runs on the same thread as the GUI.
-        """
-        empty_pull_counter = 0
+        """Start polling for statistics from the topic in a separate thread."""
+        self.thread = QThread()
+        # Create a worker and move to thread
+        self.worker = PubSubWorker()
+        self.worker.moveToThread(self.thread)
 
-        def pull():
-            nonlocal empty_pull_counter
-            try:
-                readings = self.subscriber.pull_message()
-                logger.debug(readings)
-                self.update_readings(readings)
-                empty_pull_counter = 0
-            except DeadlineExceeded:
-                logger.debug("Nothing received from topic.")
+        # Connect signals and slots
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.update.connect(self.update_readings)
 
-                # If this is the 3rd consecutive empty pull, reset all widgets
-                if empty_pull_counter >= 2:
-                    logger.info("Nothing received from topic for a while, resetting charts.")
-                    self.update_readings(EMPTY_TEMPLATE.copy())
-                    empty_pull_counter = 0
-                else:
-                    empty_pull_counter += 1
-
-        self.subscriber.seek_to_time(int(time.time()))
-        pull()
-        self.pull_timer.timeout.connect(pull)
-        self.pull_timer.start(UPDATE_INTERVAL * 1000)
+        # Start the thread
+        self.thread.start()
 
     def setup_clock_polling(self):
         """Set clock QLCD display to the current time and start polling for
@@ -328,3 +315,41 @@ class MainWindow(QMainWindow):
             qlcd.setStyleSheet("QLCDNumber { color: red }")
         else:
             qlcd.setStyleSheet("QLCDNumber { color: white }")
+
+
+class PubSubWorker(QObject):
+    finished = pyqtSignal()
+    update = pyqtSignal(dict)
+
+    def run(self):
+        """Setup a Pub/Sub message pull every UPDATE_INTERVAL seconds.
+        Note that this runs on the same thread as the GUI.
+        """
+        empty_pull_counter = 0
+        subscriber = Subscriber()
+        pull_timer = QTimer(self)
+
+        def pull():
+            nonlocal empty_pull_counter
+            try:
+                readings = subscriber.pull_message()
+                logger.debug(readings)
+                self.update.emit(readings)
+                empty_pull_counter = 0
+            except DeadlineExceeded:
+                logger.debug("Nothing received from topic.")
+
+                # If this is the 3rd consecutive empty pull, reset all widgets
+                if empty_pull_counter >= 2:
+                    logger.info("Nothing received from topic for a while, resetting charts.")
+                    self.update.emit(EMPTY_TEMPLATE.copy())
+                    empty_pull_counter = 0
+                else:
+                    empty_pull_counter += 1
+
+        subscriber.seek_to_time(int(time.time()))
+        pull()
+        pull_timer.timeout.connect(pull)
+        pull_timer.start(UPDATE_INTERVAL * 1000)
+
+        #self.finished.emit()
