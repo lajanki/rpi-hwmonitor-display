@@ -25,6 +25,8 @@ logger = logging.getLogger()
 
 
 class MainWindow(QMainWindow):
+    stop_worker = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.subscriber = Subscriber()
@@ -208,7 +210,6 @@ class MainWindow(QMainWindow):
         gpu_plot.addItem(self.gpu_temp_label)  
         gpu_grid.addWidget(gpu_plot, 0, 0)
 
-        self.pull_timer = QTimer(self)
         self.setup_pubsub_pull()
 
         with open("style.qss") as f:
@@ -233,9 +234,8 @@ class MainWindow(QMainWindow):
         self.worker.moveToThread(self.thread)
 
         # Connect signals and slots
+        self.stop_worker.connect(self.worker.stop)
         self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
         self.worker.update.connect(self.update_readings)
 
@@ -258,9 +258,11 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def stop_thread_and_exit(self):
         """Stop any running SubscriberThread and exit the application."""
-        self.pull_timer.stop()
+        self.stop_worker.emit()
+        self.thread.exit()
+        self.thread.wait()
         self.close()
-
+        
     @pyqtSlot(dict)
     def update_readings(self, readings):
         """slot for SubscriberThread: receives latest hardware readings
@@ -318,8 +320,11 @@ class MainWindow(QMainWindow):
 
 
 class PubSubWorker(QObject):
-    finished = pyqtSignal()
     update = pyqtSignal(dict)
+
+    def __init__(self):
+        super().__init__()
+        self.pull_timer = QTimer(self)
 
     def run(self):
         """Setup a Pub/Sub message pull every UPDATE_INTERVAL seconds.
@@ -327,7 +332,6 @@ class PubSubWorker(QObject):
         """
         empty_pull_counter = 0
         subscriber = Subscriber()
-        pull_timer = QTimer(self)
 
         def pull():
             nonlocal empty_pull_counter
@@ -349,7 +353,9 @@ class PubSubWorker(QObject):
 
         subscriber.seek_to_time(int(time.time()))
         pull()
-        pull_timer.timeout.connect(pull)
-        pull_timer.start(UPDATE_INTERVAL * 1000)
+        self.pull_timer.timeout.connect(pull)
+        self.pull_timer.start(UPDATE_INTERVAL * 1000)
 
-        #self.finished.emit()
+    @pyqtSlot()
+    def stop(self):
+        self.pull_timer.stop()

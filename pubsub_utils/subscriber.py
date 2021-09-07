@@ -7,7 +7,8 @@ from google.cloud import pubsub_v1
 import pubsub_utils
 
 
-logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
+logger = logging.getLogger()
+
 
 
 class Subscriber:
@@ -51,7 +52,7 @@ class Subscriber:
     def listen_for_messages(self, callback):
         """Asynchronous pull: keep listening for messages indefinitely."""
         streaming_pull_future = self.client.subscribe(self.subscription_path, callback=callback)
-        logging.info(f"Listening for messages on topic {self.subscription_path}..\n")
+        logger.info(f"Listening for messages on topic {self.subscription_path}..\n")
 
         with self.client:
             try:
@@ -64,7 +65,7 @@ class Subscriber:
 
     def _log_message(self, message):
         data = json.loads(message.data.decode("utf-8"))
-        logging.info(data)
+        logger.info(data)
         message.ack()
 
 
