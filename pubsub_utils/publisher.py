@@ -10,8 +10,6 @@ from pubsub_utils import hw_stats
 
 
 publisher = pubsub_v1.PublisherClient()
-# The `topic_path` method creates a fully qualified identifier
-# in the form `projects/{PROJECT_ID}/topics/{TOPIC_ID}`
 topic_path = publisher.topic_path(pubsub_utils.PROJECT_ID, pubsub_utils.TOPIC_ID)
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
@@ -47,30 +45,24 @@ def publish_stats():
     """Continuously fetch current statistics and publish as message.
     Publish a new message every UPDATE_INTERVAL seconds.
     """
-    total_bytes_generated = 0
-    total_bytes_processed = 0
+    bytes_generated = 0
+    bytes_processed = 0
 
-    # pub/sub processes a minimum of 1000B per push and pull
+    # Pub/Sub processes a minimum of 1 000 bytes per push and pull
     # https://cloud.google.com/pubsub/pricing#:~:text=A%20minimum%20of%201000%20bytes,assessed%20regardless%20of%20message%20size
     MIN_PROCESS_SIZE = 1000
 
     logging.info("Polling started...")
     while True:
-        message_sizes = []
-        for i in range(10):
-            data = json.dumps(get_stats()).encode("utf-8")
-            future = publisher.publish(topic_path, data)
-            message_sizes.append(len(data))
+        data = json.dumps(get_stats()).encode("utf-8")
+        future = publisher.publish(topic_path, data)
 
-            total_bytes_generated += len(data)
-            total_bytes_processed += MIN_PROCESS_SIZE  
-            time.sleep(pubsub_utils.UPDATE_INTERVAL)
-        
-        # Log publish statistics every 10th publish
-        avg_size = int(sum(message_sizes) / len(message_sizes))
-        total_messages_published = total_bytes_processed/MIN_PROCESS_SIZE
-        total_megabytes_published = round(total_bytes_processed/MIN_PROCESS_SIZE**2, 2)
+        bytes_generated += len(data)
+        bytes_processed += MIN_PROCESS_SIZE  
+        time.sleep(pubsub_utils.UPDATE_INTERVAL)
+    
+        messages_published = int(bytes_processed/MIN_PROCESS_SIZE)
+        megabytes_published = round(bytes_processed/MIN_PROCESS_SIZE**2, 2)
 
-        logging.info("Published a total of %d messages with average size %dB", total_messages_published, avg_size)
-        logging.info("Bytes generated: %dB. Megabytes published: %sMB", total_bytes_generated, total_megabytes_published)
-
+        # Print statistics overwriting previous line
+        print(f"Messages published: {messages_published} Bytes generated: {bytes_generated} Megabytes published: {megabytes_published}", end="\r")
