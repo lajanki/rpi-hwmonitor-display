@@ -23,9 +23,14 @@ except pynvml.NVMLError_LibraryNotFound as e:
 
 EMPTY_TEMPLATE = {
     "cpu": {
-        "utilization": [],
-        "frequency": [],
-        "temperature": []
+        "cores": {
+            "utilization": [],
+            "frequency": [],
+            "temperature": []
+        },
+        "utilization": 0,
+        "frequency": 0,
+        "temperature": 0
     },
     "gpu": {
         "memory.used": 0,
@@ -70,13 +75,20 @@ def get_gpu_info():
     return stats
 
 def _get_cpu_info_psutil():
-    """Fetch current CPU core temperature, frequnces and loads using psutil."""
-    cpu_temps = psutil.sensors_temperatures()
-    temperatures = [int(item.current) for item in cpu_temps["coretemp"] if "Core" in item.label]
-    frequences = [int(item.current) for item in psutil.cpu_freq(percpu=True)]
-    load = list(map(int, psutil.cpu_percent(percpu=True)))
+    """CPU utilization, frequency and temperature from psutil."""
+    temps = psutil.sensors_temperatures()
+    stats = {
+        "cores": {
+            "utilization": list(map(int, psutil.cpu_percent(percpu=True))),
+            "frequency": [int(item.current) for item in psutil.cpu_freq(percpu=True)],
+            "temperature":  [int(item.current) for item in temps["coretemp"] if "Core" in item.label]
+        },
+        "utilization": int(psutil.cpu_percent()),
+        "frequency": int(psutil.cpu_freq().current),
+        "temperature": int(temps["coretemp"][0].current)
+    }
 
-    return {"utilization": load, "frequency": frequences, "temperature": temperatures }
+    return stats
 
 def _get_cpu_and_gpu_info_wmi():
     """Fetch current CPU and GPU using wmi (Windows Management Instrumentation) and OpenHardwareMonitor.

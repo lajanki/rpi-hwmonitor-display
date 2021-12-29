@@ -224,7 +224,7 @@ class MainWindow(QMainWindow):
         """Update CPU core QLCDs."""
         for i, qlcd in enumerate(self.core_qlcd):
             try:
-                val = readings["cpu"]["utilization"][i]
+                val = readings["cpu"]["cores"]["utilization"][i]
             except IndexError:
                 val = 0
             qlcd.display(val)
