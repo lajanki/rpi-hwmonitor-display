@@ -34,8 +34,7 @@ class Subscriber:
                 "ack_ids": ack_ids,
             }
         )
-        data = response.received_messages[0].message.data.decode("utf-8")
-        return json.loads(data)
+        return response.received_messages[0].message
 
     def seek_to_time(self, time):
         """Seek the subscription to a given timestamp in seconds."""

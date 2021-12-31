@@ -1,7 +1,9 @@
 import logging
 import time
+import json
 
 from google.api_core.exceptions import DeadlineExceeded
+import numpy as np
 from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtCore import Qt, QObject, QThread, QTimer, pyqtSlot, pyqtSignal
 from PyQt5.QtWidgets import (
@@ -96,20 +98,22 @@ class MainWindow(QMainWindow):
 
 
         ### CPU & GPU time series grid
-        # TODO
         date_axis = pg.graphicsItems.DateAxisItem.DateAxisItem(orientation="bottom")
         percent_axis = PercentAxisItem(orientation="left")
-        graph = pg.PlotWidget(axisItems = {"bottom": date_axis, "left": percent_axis})
+        #percent_axis.enableAutoSIPrefix(False)
 
-        import numpy as np
-        from datetime import datetime, timedelta
-        x = [time.time() - i for i in range(10)]
+ 
+        utilization_graph = pg.PlotWidget(axisItems = {"bottom": date_axis, "left": percent_axis})
   
-        graph.addLegend() # Needs to be called before plotting series
-        graph.plot(x, np.random.normal(loc=5, size=(10,)), pen="b", name="CPU")
-        graph.plot(x, np.random.normal(loc=5, size=(10,)), pen="g", name="GPU")
 
-        timeline_grid.addWidget(graph, 0, 0)
+        utilization_graph.addLegend() # Needs to be called before plotting series
+        cpu_plot = utilization_graph.plot([time.time()], [0], pen="b", name="CPU")
+        gpu_plot = utilization_graph.plot([time.time()], [0], pen="g", name="GPU")
+        self.utilization_plots = {"cpu": cpu_plot, "gpu": gpu_plot}
+
+        timeline_grid.addWidget(utilization_graph, 0, 0)
+
+        #percent_axis.setRange(0, 100)
 
 
         ### RAM grid, bottom right
@@ -174,8 +178,6 @@ class MainWindow(QMainWindow):
 
     def setup_pubsub_pull(self):
         """Start polling for statistics from the topic in a separate thread."""
-        self.cpu_readings = []
-        self.gpu_readings = []
         self.thread = QThread()
 
         # Create a worker and move to thread
@@ -217,7 +219,7 @@ class MainWindow(QMainWindow):
         and updates the GUI.
         """
         self._update_cpu_cores(readings)
-        #self._update_gpu(readings)
+        self._update_utilization_graphs(readings)
         self._update_ram(readings)
 
     def _update_cpu_cores(self, readings):
@@ -231,7 +233,24 @@ class MainWindow(QMainWindow):
             self._set_qlcd_color(qlcd)
 
     def _update_utilization_graphs(self, readings):
-        self.cpu_readings
+        """Update utilization time series graph. Only data points from previous 5 minutes are kept."""
+        for key in self.utilization_plots:
+            # Update old x and y values keeping only the latest n values
+            old_data = self.utilization_plots[key].getData()
+
+            # Ignore this reading if older than the latest data point in graph.
+            # (Pub/Sub does not guarantee ordering by default. Fix: enable ordering?)
+            if readings["timestamp"] <= old_data[0][-1]:
+                logging.warn("Discarding item as too old. Age: %ds", time.time() - readings["timestamp"])
+                return
+
+            x = np.append(old_data[0], readings["timestamp"])
+            y = np.append(old_data[1], readings[key]["utilization"])
+
+            x = x[-120:]
+            y = y[-120:]
+
+            self.utilization_plots[key].setData(x, y)
 
     def _update_ram(self, readings):
         """Update RAM usage bar plot and labels."""
@@ -242,19 +261,6 @@ class MainWindow(QMainWindow):
         #self.ram_available_bar_label.setText("{}%".format(available))
 
         self.ram_used_label.setText("{:.1f}GB".format(readings["ram"]["used"]/1000))
-
-    def _update_gpu(self, readings):
-        used = int(readings["gpu"]["memory.used"] / readings["gpu"]["memory.total"] * 100)
-        utilization = readings["gpu"]["utilization"]
-        temperature = readings["gpu"]["temperature"]
-
-        self.gpu_bg_used.setOpts(height=[used])
-        self.gpu_bg_utilization.setOpts(height=[utilization])
-        self.gpu_used_bar_label.setText("{}%".format(used))
-        self.gpu_utilization_bar_label.setText("{}%".format(utilization))
-
-        self.gpu_utilization_label.setText("{:d}%".format(utilization))
-        self.gpu_temp_label.setText("{}°C".format(temperature))
 
     def _set_qlcd_color(self, qlcd):
         """Set QLCD background color based on its value. Lighter value for low values and
@@ -290,7 +296,10 @@ class PubSubWorker(QObject):
         def pull():
             nonlocal empty_pull_counter
             try:
-                readings = subscriber.pull_message()
+                message = subscriber.pull_message()
+                readings = json.loads(message.data.decode("utf-8"))
+                readings["timestamp"] =  message.publish_time.timestamp()
+
                 logger.debug(readings)
                 self.update.emit(readings)
                 empty_pull_counter = 0
@@ -320,4 +329,4 @@ class PercentAxisItem(pg.AxisItem):
         super().__init__(*args, **kwargs)
 
     def tickStrings(self, values, scale, spacing):
-        return [f"{v}%" for v in values]
+        return [f"{int(v)}%" for v in values]
