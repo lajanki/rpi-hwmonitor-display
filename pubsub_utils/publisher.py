@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import time
+import sys
 
 from google.cloud import pubsub_v1
 
@@ -53,16 +54,23 @@ def publish_stats():
     MIN_PROCESS_SIZE = 1000
 
     logging.info("Polling started...")
-    while True:
-        data = json.dumps(get_stats()).encode("utf-8")
-        future = publisher.publish(topic_path, data)
+    logging.info("Ctrl-C to exit")
+    try:
+        while True:
+            data = json.dumps(get_stats()).encode("utf-8")
+            future = publisher.publish(topic_path, data)
 
-        bytes_generated += len(data)
-        bytes_processed += MIN_PROCESS_SIZE  
-        time.sleep(pubsub_utils.UPDATE_INTERVAL)
-    
-        messages_published = int(bytes_processed/MIN_PROCESS_SIZE)
-        megabytes_published = round(bytes_processed/MIN_PROCESS_SIZE**2, 2)
+            bytes_generated += len(data)
+            bytes_processed += MIN_PROCESS_SIZE  
+            time.sleep(pubsub_utils.UPDATE_INTERVAL)
+        
+            messages_published = int(bytes_processed/MIN_PROCESS_SIZE)
+            megabytes_published = round(bytes_processed/1000**2, 2)
+            megabytes_generated = round(bytes_generated/1000**2, 2)
 
-        # Print statistics overwriting previous line
-        print(f"Messages published: {messages_published} Bytes generated: {bytes_generated} Megabytes published: {megabytes_published}", end="\r")
+            # Print statistics overwriting previous line
+            print(f"Messages published: {messages_published} Megabytes published: {megabytes_published}MB (generated: {megabytes_generated}MB)", end="\r")
+    except KeyboardInterrupt:
+        print()
+        logging.info("Exiting")
+        sys.exit()
