@@ -22,6 +22,7 @@ except pynvml.NVMLError_LibraryNotFound as e:
     IGNORE_GPU = True
 
 EMPTY_TEMPLATE = {
+    "timestamp": 1640977505,
     "cpu": {
         "cores": {
             "utilization": [],

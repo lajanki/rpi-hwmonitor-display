@@ -60,13 +60,6 @@ class MainWindow(QMainWindow):
 
 
         ### CPU utilization, top row
-        cpu_title_label = QLabel("CPU", objectName="cpu_title_label")
-        #cpu_core_grid.addWidget(cpu_title_label, 0, 0)
-
-        cpu_utilization_label = QLabel("%")
-        cpu_utilization_label.adjustSize()
-        #cpu_core_grid.addWidget(cpu_utilization_label, 1, 0)
-
         # Close button, top right
         close_button = QPushButton("Close ")
         close_button.setIcon(QIcon("resources/iconfinder_Close_1891023.png"))
@@ -100,21 +93,17 @@ class MainWindow(QMainWindow):
         ### CPU & GPU time series grid
         date_axis = pg.graphicsItems.DateAxisItem.DateAxisItem(orientation="bottom")
         percent_axis = PercentAxisItem(orientation="left")
-        #percent_axis.enableAutoSIPrefix(False)
 
- 
         utilization_graph = pg.PlotWidget(axisItems = {"bottom": date_axis, "left": percent_axis})
-  
-
-        utilization_graph.addLegend() # Needs to be called before plotting series
+        utilization_graph.addLegend() # Needs to be called before any plotting
         cpu_plot = utilization_graph.plot([time.time()], [0], pen="b", name="CPU")
         gpu_plot = utilization_graph.plot([time.time()], [0], pen="g", name="GPU")
         self.utilization_plots = {"cpu": cpu_plot, "gpu": gpu_plot}
 
+        # Fix y-axis range
+        view_box = utilization_graph.getViewBox()
+        view_box.setRange(yRange=(0,100))
         timeline_grid.addWidget(utilization_graph, 0, 0)
-
-        #percent_axis.setRange(0, 100)
-
 
         ### RAM grid, bottom right
         ram_plot = pg.plot()
@@ -234,6 +223,7 @@ class MainWindow(QMainWindow):
 
     def _update_utilization_graphs(self, readings):
         """Update utilization time series graph. Only data points from previous 5 minutes are kept."""
+        DATAPOINTS = 60//UPDATE_INTERVAL * 5
         for key in self.utilization_plots:
             # Update old x and y values keeping only the latest n values
             old_data = self.utilization_plots[key].getData()
@@ -246,9 +236,8 @@ class MainWindow(QMainWindow):
 
             x = np.append(old_data[0], readings["timestamp"])
             y = np.append(old_data[1], readings[key]["utilization"])
-
-            x = x[-120:]
-            y = y[-120:]
+            x = x[-DATAPOINTS:]
+            y = y[-DATAPOINTS:]
 
             self.utilization_plots[key].setData(x, y)
 
@@ -298,7 +287,7 @@ class PubSubWorker(QObject):
             try:
                 message = subscriber.pull_message()
                 readings = json.loads(message.data.decode("utf-8"))
-                readings["timestamp"] =  message.publish_time.timestamp()
+                readings["timestamp"] = message.publish_time.timestamp()
 
                 logger.debug(readings)
                 self.update.emit(readings)
