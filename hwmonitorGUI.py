@@ -1,5 +1,6 @@
 import logging
 import time
+import os
 import json
 
 from google.api_core.exceptions import DeadlineExceeded
@@ -68,7 +69,7 @@ class MainWindow(QMainWindow):
         close_button.clicked.connect(self.stop_thread_and_exit)
         close_button.setSizePolicy(
             QSizePolicy.Preferred,
-            QSizePolicy.Expanding
+            QSizePolicy.Preferred
         )
 
         self.clock_lcd = QLCDNumber(5, self, objectName="clock_qlcd")
@@ -76,18 +77,18 @@ class MainWindow(QMainWindow):
         cpu_core_grid.addWidget(self.clock_lcd, 0, 1, 1, 3)
         self.setup_clock_polling()
 
-        ### CPU core utilization grid
-        # Currently fixed to showing 4 cores.
-        # TODO dynamic row count based on cores available
-        NUM_QLCD_PER_ROW = 4
+        # QLCD widget per CPU core in rows of 4 widgets. This will likely not work well
+        # with very high core number.
+        QLCD_PER_ROW = 4
         self.core_qlcd = []
-        for col in range(1, NUM_QLCD_PER_ROW+1):
-            qlcd = QLCDNumber(self)
-            qlcd.setDigitCount(2)
-            qlcd.display(0)
-            qlcd.setSegmentStyle(QLCDNumber.Flat)
-            cpu_core_grid.addWidget(qlcd, 1, col)
-            self.core_qlcd.append(qlcd)
+        for row in range(os.cpu_count()//QLCD_PER_ROW):
+            for col in range(QLCD_PER_ROW):
+                qlcd = QLCDNumber(self)
+                qlcd.setDigitCount(2)
+                qlcd.display(0)
+                qlcd.setSegmentStyle(QLCDNumber.Flat)
+                cpu_core_grid.addWidget(qlcd, row+1, col+1)
+                self.core_qlcd.append(qlcd)
 
 
         ### CPU & GPU time series grid
@@ -95,9 +96,10 @@ class MainWindow(QMainWindow):
         percent_axis = PercentAxisItem(orientation="left")
 
         utilization_graph = pg.PlotWidget(axisItems = {"bottom": date_axis, "left": percent_axis})
+        utilization_graph.setTitle("<h2>CPU/GPU</h2>")
         utilization_graph.addLegend() # Needs to be called before any plotting
-        cpu_plot = utilization_graph.plot([time.time()], [0], pen="b", name="CPU")
-        gpu_plot = utilization_graph.plot([time.time()], [0], pen="g", name="GPU")
+        cpu_plot = utilization_graph.plot([time.time()], [0], pen="#1227F1", name="CPU")
+        gpu_plot = utilization_graph.plot([time.time()], [0], pen="#FF0000", name="GPU")
         self.utilization_plots = {"cpu": cpu_plot, "gpu": gpu_plot}
 
         # Fix y-axis range
@@ -107,13 +109,13 @@ class MainWindow(QMainWindow):
 
         ### RAM grid, bottom right
         ram_plot = pg.plot()
-        ram_plot.setTitle("<h2>RAM</h2>")
+        ram_plot.setTitle("<h2>MEM</h2>")
 
         x_labeled = {0: "RAM", 1: "GPU"}
         x = list(x_labeled.keys())
 
         self.system_mem_bg_used = pg.BarGraphItem(x=[x[0]], height=[0], width=0.6, brush="#0E1F06")
-        self.gpu_mem_bg_used = pg.BarGraphItem(x=[x[1]], height=[0], width=0.6, brush="#0E1F06")
+        self.gpu_mem_bg_used = pg.BarGraphItem(x=[x[1]], height=[0], width=0.6, brush="#FF0000")
         ram_plot.addItem(self.system_mem_bg_used)
         ram_plot.addItem(self.gpu_mem_bg_used)
 
