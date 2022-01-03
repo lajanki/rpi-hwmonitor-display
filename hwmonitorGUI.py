@@ -160,7 +160,6 @@ class MainWindow(QMainWindow):
 
         ram_grid.addWidget(ram_plot, 0, 0)
 
-
         self.resize(620, 420)
         self.setWindowTitle("HWMonitor")
         self.setWindowIcon(QIcon("resources/iconfinder_gnome-system-monitor_23964.png"))
@@ -266,15 +265,26 @@ class MainWindow(QMainWindow):
         Uses HSL color codes with varying lightness value.
         """ 
         value = qlcd.intValue()
+
+        # saturation: 20 -> 42 and 100 -> 100
+        saturation = self._get_linear_value((20, 42), (100, 100), value)
+        
+        # lightness: 20 -> 79 and 100 -> 50
+        lightness = self._get_linear_value((20, 79), (100, 50), value)
+
         if value <= 20:
-            lightness = 62
-        else:
-            # Create a linear function for lightness value with 20 -> 62 and 100 -> 25
-            k = (25-62)/(100-20)
-            b = 25 - k * 100  # f(x) = kx + b
-            lightness = int(k*value + b)
+            saturation = 42
+            lightness = 79
             
-        qlcd.setStyleSheet(f"QLCDNumber {{ background-color: hsl(0, 100%, {lightness}%) }}")
+        qlcd.setStyleSheet(f"QLCDNumber {{ background-color: hsl(218, {saturation}%, {lightness}%) }}")
+
+    def _get_linear_value(self, p1, p2, x):
+        """Compute the lienar function value at x
+        passing through the coordinates p1 and p2.
+        """
+        k = (p2[1] - p1[1])/(p2[0] - p1[1])
+        b = p1[1] - k * p1[0] # b = f(x) - kx
+        return int(k*x + b)
 
 
 class PubSubWorker(QObject):

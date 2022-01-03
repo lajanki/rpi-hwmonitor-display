@@ -1,5 +1,5 @@
 QLCDNumber {
-  background-color: hsl(0, 100%, 62%);
+  background-color: hsl(218, 42%, 79%);
   color: white;
   font-weight: 500;
   border: 1px;
