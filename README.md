@@ -6,7 +6,6 @@ System statistics monitored include:
  * used and available RAM,
  * Nvidia GPU core utilization and temperature and memory utilization (Non Nvidia cards are not supported)
 
-<sub>(*)Only the first 4 CPU cores are displayed.</sub>
 
 
 ![Main window](hwmonitor.png)
@@ -35,7 +34,7 @@ pip install -r requirements.txt
 ## Run
 To run the statistics poller:
 ```
-python hw_poller.py
+python poller.py
 ```
 Then, run the monitor in a different terminal with
 ```
@@ -50,12 +49,12 @@ Next, install Windows only dependencies with
 pip install -r requirements-win.txt
 ```
 
-You can now run `hw_poller.py` with the above command.
+You can now run `poller.py` with the above command.
 
 
 ## Poller configuration and Pub/Sub pricing
 Polling frequency can be adjusted in `.env`. If not set, a default value of 5 will be used which means statistics are polled, and a message is published to the Pub/Sub topic every 5 seconds.
 
-Pub/Sub's [pricing](https://cloud.google.com/pubsub/pricing) is based on data sent with a minimum of 1000 bytes per publish. This minimum is likely over the actual data sent. Thus, publishing and receiving a message every 5 seconds (or 12 times per minute) transmit a total of `12 * 2kB = 24kB` per minute. Running both the poller and the monitor constantly would then transmit `24 * 60 * 24kB = 34560kB ~ 35MB` per day, roughly `1 GB / month`. 
+Pub/Sub's [pricing](https://cloud.google.com/pubsub/pricing) is based on data sent with a minimum of 1000 bytes per publish. This minimum is likely greater than the actual data generated. Thus, publishing and receiving a message every 5 seconds (12 times per minute) transmit a total of `12 * 2kB = 24kB` per minute. Running both the poller and the monitor constantly would then transmit `24 * 60 * 24kB = 34560kB ~ 35MB` per day, roughly `1 GB / month`. 
 
 There is a free tier where the first 10 gigabytes of usage each month are free.
