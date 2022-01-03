@@ -99,7 +99,7 @@ class MainWindow(QMainWindow):
         utilization_graph.setTitle("<h2>CPU/GPU</h2>")
         utilization_graph.addLegend() # Needs to be called before any plotting
         cpu_plot = utilization_graph.plot([time.time()], [0], pen="#1227F1", name="CPU")
-        gpu_plot = utilization_graph.plot([time.time()], [0], pen="#FF0000", name="GPU")
+        gpu_plot = utilization_graph.plot([time.time()], [0], pen="#660000", name="GPU")
         self.utilization_plots = {"cpu": cpu_plot, "gpu": gpu_plot}
 
         # Fix y-axis range
@@ -115,7 +115,7 @@ class MainWindow(QMainWindow):
         x = list(x_labeled.keys())
 
         self.system_mem_bg_used = pg.BarGraphItem(x=[x[0]], height=[0], width=0.6, brush="#0E1F06")
-        self.gpu_mem_bg_used = pg.BarGraphItem(x=[x[1]], height=[0], width=0.6, brush="#FF0000")
+        self.gpu_mem_bg_used = pg.BarGraphItem(x=[x[1]], height=[0], width=0.6, brush="#660000")
         ram_plot.addItem(self.system_mem_bg_used)
         ram_plot.addItem(self.gpu_mem_bg_used)
 
@@ -148,10 +148,15 @@ class MainWindow(QMainWindow):
 
         font = QFont()
         font.setPixelSize(22)
-        self.ram_used_label = pg.TextItem("GB", fill="#660000", anchor=(1,1))
-        self.ram_used_label.setFont(font)
-        self.ram_used_label.setPos(X_MAX, 0.7 * Y_MAX)
-        ram_plot.addItem(self.ram_used_label)
+        self.system_mem_label = pg.TextItem("0.0GB", fill="#0E1F06", anchor=(1,1))
+        self.system_mem_label.setFont(font)
+        self.system_mem_label.setPos(X_MAX, 0.75 * Y_MAX)
+        ram_plot.addItem(self.system_mem_label)
+
+        self.gpu_mem_label = pg.TextItem("0.0GB", fill="#660000", anchor=(1,1))
+        self.gpu_mem_label.setFont(font)
+        self.gpu_mem_label.setPos(X_MAX, 0.55 * Y_MAX)
+        ram_plot.addItem(self.gpu_mem_label)
 
         ram_grid.addWidget(ram_plot, 0, 0)
 
@@ -244,14 +249,16 @@ class MainWindow(QMainWindow):
             self.utilization_plots[key].setData(x, y)
 
     def _update_ram(self, readings):
-        """Update RAM usage bar plot and labels."""
-        used = int(readings["ram"]["used"] / readings["ram"]["total"] * 100)
+        """Update RAM usage bars plot and labels."""
+        system_used = int(readings["ram"]["used"] / readings["ram"]["total"] * 100)
+        self.system_mem_bg_used.setOpts(height=[system_used])
+        self.system_mem_bar_label.setText("{}%".format(system_used))
+        self.system_mem_label.setText("{:.1f}GB".format(readings["ram"]["used"]/1000))
 
-        self.system_mem_bg_used.setOpts(height=[used])
-        self.system_mem_bar_label.setText("{}%".format(used))
-        #self.ram_available_bar_label.setText("{}%".format(available))
-
-        self.ram_used_label.setText("{:.1f}GB".format(readings["ram"]["used"]/1000))
+        gpu_mem_used = int(readings["gpu"]["memory.used"] / readings["gpu"]["memory.total"] * 100)
+        self.gpu_mem_bg_used.setOpts(height=[gpu_mem_used])
+        self.gpu_mem_bar_label.setText("{}%".format(gpu_mem_used))
+        self.gpu_mem_label.setText("{:.1f}GB".format(readings["gpu"]["memory.used"]/1000))
 
     def _set_qlcd_color(self, qlcd):
         """Set QLCD background color based on its value. Lighter value for low values and
