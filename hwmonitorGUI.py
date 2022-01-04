@@ -98,8 +98,14 @@ class MainWindow(QMainWindow):
         utilization_graph = pg.PlotWidget(axisItems = {"bottom": date_axis, "left": percent_axis})
         utilization_graph.setTitle("<h2>CPU/GPU</h2>")
         utilization_graph.addLegend() # Needs to be called before any plotting
-        cpu_plot = utilization_graph.plot([time.time()], [0], pen="#1227F1", name="CPU")
-        gpu_plot = utilization_graph.plot([time.time()], [0], pen="#660000", name="GPU")
+
+        # Initialize graphs with zeros for previous 5 minutes
+        DATAPOINTS = 60//UPDATE_INTERVAL * 5
+        x = [time.time() - UPDATE_INTERVAL*i for i in range(DATAPOINTS,0,-1)]
+        y = [0] * DATAPOINTS
+
+        cpu_plot = utilization_graph.plot(x, y, pen="#1227F1", name="CPU")
+        gpu_plot = utilization_graph.plot(x, y, pen="#660000", name="GPU")
         self.utilization_plots = {"cpu": cpu_plot, "gpu": gpu_plot}
 
         # Fix y-axis range
@@ -228,8 +234,7 @@ class MainWindow(QMainWindow):
             self._set_qlcd_color(qlcd)
 
     def _update_utilization_graphs(self, readings):
-        """Update utilization time series graph. Only data points from previous 5 minutes are kept."""
-        DATAPOINTS = 60//UPDATE_INTERVAL * 5
+        """Update utilization time series graph. Remove oldest item and add new reading as latest."""
         for key in self.utilization_plots:
             # Update old x and y values keeping only the latest n values
             old_data = self.utilization_plots[key].getData()
@@ -239,11 +244,9 @@ class MainWindow(QMainWindow):
             if readings["timestamp"] <= old_data[0][-1]:
                 logging.warn("Discarding item as too old. Age: %ds", time.time() - readings["timestamp"])
                 return
-
-            x = np.append(old_data[0], readings["timestamp"])
-            y = np.append(old_data[1], readings[key]["utilization"])
-            x = x[-DATAPOINTS:]
-            y = y[-DATAPOINTS:]
+            
+            x = np.append(old_data[0][1:], readings["timestamp"])
+            y = np.append(old_data[1][1:], readings[key]["utilization"])
 
             self.utilization_plots[key].setData(x, y)
 
