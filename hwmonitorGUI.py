@@ -243,7 +243,7 @@ class MainWindow(QMainWindow):
             # Ignore this reading if older than the latest data point in graph.
             # (Pub/Sub does not guarantee ordering by default. Fix: enable ordering?)
             if readings["timestamp"] <= old_data[0][-1]:
-                logging.warn("Discarding item as too old. Age: %ds", time.time() - readings["timestamp"])
+                logging.warn("Discarding out-of-order item. Age: %ds", time.time() - readings["timestamp"])
                 return
             
             x = np.append(old_data[0][1:], readings["timestamp"])
@@ -291,14 +291,10 @@ class PubSubWorker(QObject):
         self.pull_timer = QTimer(self)
 
     def run(self):
-        """Setup a Pub/Sub message pull every UPDATE_INTERVAL seconds.
-        Note that this runs on the same thread as the GUI.
-        """
-        empty_pull_counter = 0
+        """Setup a Pub/Sub message pull every UPDATE_INTERVAL seconds."""
         subscriber = Subscriber()
 
         def pull():
-            nonlocal empty_pull_counter
             try:
                 message = subscriber.pull_message()
                 readings = json.loads(message.data.decode("utf-8"))
@@ -306,17 +302,14 @@ class PubSubWorker(QObject):
 
                 logger.debug(readings)
                 self.update.emit(readings)
-                empty_pull_counter = 0
             except DeadlineExceeded:
                 logger.debug("Nothing received from topic.")
 
-                # If this is the 3rd consecutive empty pull, reset all widgets (unless already empty)
-                if empty_pull_counter == 2:
-                    logger.info("Nothing received from topic for a while, resetting charts.")
-                    self.update.emit(EMPTY_TEMPLATE)
-                    empty_pull_counter += 1
-                else:
-                    empty_pull_counter += 1
+                # Emit an empty response with current timestamp to avoid
+                # discarding it as too old.
+                readings = EMPTY_TEMPLATE.copy()
+                readings["timestamp"] = time.time()
+                self.update.emit(readings)
 
         subscriber.seek_to_time(int(time.time()))
         pull()
