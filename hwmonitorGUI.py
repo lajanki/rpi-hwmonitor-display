@@ -22,6 +22,7 @@ import pyqtgraph as pg
 from pubsub_utils import UPDATE_INTERVAL
 from pubsub_utils.hw_stats import EMPTY_TEMPLATE
 from pubsub_utils.subscriber import Subscriber
+import utils
 
 
 logger = logging.getLogger()
@@ -100,9 +101,9 @@ class MainWindow(QMainWindow):
         utilization_graph.addLegend() # Needs to be called before any plotting
 
         # Initialize graphs with zeros for previous 5 minutes
-        DATAPOINTS = 60//UPDATE_INTERVAL * 5
-        x = [time.time() - UPDATE_INTERVAL*i for i in range(DATAPOINTS,0,-1)]
-        y = [0] * DATAPOINTS
+        NUM_DATAPOINTS = 60//UPDATE_INTERVAL * 5
+        x = [int(time.time()) - UPDATE_INTERVAL*i for i in range(NUM_DATAPOINTS,0,-1)]
+        y = [0] * NUM_DATAPOINTS
 
         cpu_plot = utilization_graph.plot(x, y, pen="#1227F1", name="CPU")
         gpu_plot = utilization_graph.plot(x, y, pen="#660000", name="GPU")
@@ -270,24 +271,16 @@ class MainWindow(QMainWindow):
         value = qlcd.intValue()
 
         # saturation: 20 -> 42 and 100 -> 100
-        saturation = self._get_linear_value((20, 42), (100, 100), value)
+        saturation = utils.interpolate((20, 42), (100, 100), value)
         
         # lightness: 20 -> 79 and 100 -> 50
-        lightness = self._get_linear_value((20, 79), (100, 50), value)
+        lightness = utils.interpolate((20, 79), (100, 50), value)
 
         if value <= 20:
             saturation = 42
             lightness = 79
             
         qlcd.setStyleSheet(f"QLCDNumber {{ background-color: hsl(218, {saturation}%, {lightness}%) }}")
-
-    def _get_linear_value(self, p1, p2, x):
-        """Compute the lienar function value at x
-        passing through the coordinates p1 and p2.
-        """
-        k = (p2[1] - p1[1])/(p2[0] - p1[1])
-        b = p1[1] - k * p1[0] # b = f(x) - kx
-        return int(k*x + b)
 
 
 class PubSubWorker(QObject):
