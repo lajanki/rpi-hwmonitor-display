@@ -292,24 +292,32 @@ class PubSubWorker(QObject):
 
     def run(self):
         """Setup a Pub/Sub message pull every UPDATE_INTERVAL seconds."""
+        empty_pull_counter = 0
         subscriber = Subscriber()
 
         def pull():
+            nonlocal empty_pull_counter
             try:
                 message = subscriber.pull_message()
                 readings = json.loads(message.data.decode("utf-8"))
                 readings["timestamp"] = message.publish_time.timestamp()
-
-                logger.debug(readings)
                 self.update.emit(readings)
+                empty_pull_counter = 0
             except DeadlineExceeded:
-                logger.debug("Nothing received from topic.")
+                # If this is the 2nd consecutive empty pull, reset all widgets
+                if empty_pull_counter >= 1:
+                    logger.info("Nothing received from topic for a while, resetting charts.")
 
-                # Emit an empty response with current timestamp to avoid
-                # discarding it as too old.
-                readings = EMPTY_TEMPLATE.copy()
-                readings["timestamp"] = time.time()
-                self.update.emit(readings)
+                    # Emit an empty response with current timestamp to avoid
+                    # discarding it as too old.
+                    readings = EMPTY_TEMPLATE.copy()
+                    readings["timestamp"] = time.time()
+                    self.update.emit(readings)
+
+                    empty_pull_counter += 1
+                else:
+                    logger.debug("Nothing received from topic.")
+                    empty_pull_counter += 1
 
         subscriber.seek_to_time(int(time.time()))
         pull()
