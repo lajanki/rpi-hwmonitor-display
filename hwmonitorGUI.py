@@ -114,6 +114,9 @@ class MainWindow(QMainWindow):
         view_box.setRange(yRange=(0,100))
         timeline_grid.addWidget(utilization_graph, 0, 0)
 
+        utilization_graph.setMouseEnabled(x=False, y=False)
+
+
         ### RAM grid, bottom right
         ram_plot = pg.plot()
         ram_plot.setTitle("<h2>MEM</h2>")
