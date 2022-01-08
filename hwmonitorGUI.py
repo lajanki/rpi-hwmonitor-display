@@ -5,7 +5,7 @@ import json
 
 from google.api_core.exceptions import DeadlineExceeded
 import numpy as np
-from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtGui import QFont, QIcon, QPixmap
 from PyQt5.QtCore import Qt, QObject, QThread, QTimer, pyqtSlot, pyqtSignal
 from PyQt5.QtWidgets import (
     QMainWindow,
@@ -63,12 +63,17 @@ class MainWindow(QMainWindow):
         layout.setColumnStretch(1, 1)
 
 
-        ### CPU utilization, top row
         # Close button, top right
+        icon_label = QLabel(self)
+        pixmap = QPixmap("resources/iconfinder_chip_square_6137627.png")
+        pixmap = pixmap.scaledToHeight(48)
+        icon_label.setPixmap(pixmap)
+        cpu_core_grid.addWidget(icon_label, 0, 0)
+
         close_button = QPushButton("Close ")
         close_button.setIcon(QIcon("resources/iconfinder_Close_1891023.png"))
         close_button.setLayoutDirection(Qt.RightToLeft)
-        cpu_core_grid.addWidget(close_button, 0, 4)
+        cpu_core_grid.addWidget(close_button, 0, 3)
         close_button.clicked.connect(self.stop_thread_and_exit)
         close_button.setSizePolicy(
             QSizePolicy.Preferred,
@@ -77,10 +82,11 @@ class MainWindow(QMainWindow):
 
         self.clock_lcd = QLCDNumber(5, self, objectName="clock_qlcd")
         self.clock_lcd.setSegmentStyle(QLCDNumber.Flat)
-        cpu_core_grid.addWidget(self.clock_lcd, 0, 2, 1, 2)
+        cpu_core_grid.addWidget(self.clock_lcd, 0, 1, 1, 2)
         self.setup_clock_polling()
 
-        # QLCD widget per CPU core in rows of 4 widgets. This will likely not work well
+        ### CPU core utilizations
+        # QLCD widget per core in rows of 4 widgets. This will likely not work well
         # with very high core number.
         QLCD_PER_ROW = 4
         self.core_qlcd = []
@@ -90,7 +96,7 @@ class MainWindow(QMainWindow):
                 qlcd.setDigitCount(2)
                 qlcd.display(0)
                 qlcd.setSegmentStyle(QLCDNumber.Flat)
-                cpu_core_grid.addWidget(qlcd, row+1, col+1)
+                cpu_core_grid.addWidget(qlcd, row+1, col)
                 self.core_qlcd.append(qlcd)
 
 
@@ -124,6 +130,9 @@ class MainWindow(QMainWindow):
         temperature_grid = QHBoxLayout()
         self.cpu_temperature = QLabel("0°C", self)
         self.gpu_temperature = QLabel("0°C", self)
+        
+        self.cpu_temperature.setAlignment(Qt.AlignCenter)
+        self.gpu_temperature.setAlignment(Qt.AlignCenter)
         self.cpu_temperature.setStyleSheet("background-color: black; color: #93BAFF")
         self.gpu_temperature.setStyleSheet("background-color: black; color: #FF9393")
   
