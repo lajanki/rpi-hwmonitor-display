@@ -276,8 +276,8 @@ class MainWindow(QMainWindow):
         # saturation: 20 -> 42 and 100 -> 100
         saturation = utils.interpolate((20, 42), (100, 100), value)
         
-        # lightness: 20 -> 79 and 100 -> 50
-        lightness = utils.interpolate((20, 79), (100, 50), value)
+        # lightness: 20 -> 79 and 100 -> 30
+        lightness = utils.interpolate((20, 79), (100, 30), value)
 
         if value <= 20:
             saturation = 42
