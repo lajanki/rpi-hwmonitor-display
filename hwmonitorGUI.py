@@ -15,6 +15,8 @@ from PyQt5.QtWidgets import (
     QLCDNumber,
     QDesktopWidget,
     QGridLayout,
+    QVBoxLayout,
+    QHBoxLayout,
     QSizePolicy
 )
 import pyqtgraph as pg
@@ -41,24 +43,24 @@ class MainWindow(QMainWindow):
         main_widget.setAutoFillBackground(True)
         self.setCentralWidget(main_widget)
 
-        base_layout = QGridLayout()
-        main_widget.setLayout(base_layout)
+        layout = QGridLayout()
+        main_widget.setLayout(layout)
 
         cpu_core_grid = QGridLayout()
-        timeline_grid = QGridLayout()
-        ram_grid = QGridLayout()
+        timeline_grid = QVBoxLayout()
+        metric_grid = QVBoxLayout()
 
-        base_layout.addLayout(cpu_core_grid, 0, 0, 1, 2)
-        base_layout.addLayout(timeline_grid, 1, 0)
-        base_layout.addLayout(ram_grid, 1, 1)
+        layout.addLayout(cpu_core_grid, 0, 0, 1, 2)
+        layout.addLayout(timeline_grid, 1, 0)
+        layout.addLayout(metric_grid, 1, 1)
 
         # Set more space to bottom row
-        base_layout.setRowStretch(0, 1)
-        base_layout.setRowStretch(1, 2)
+        layout.setRowStretch(0, 1)
+        layout.setRowStretch(1, 2)
 
         # Set more space to left column
-        base_layout.setColumnStretch(0, 2)
-        base_layout.setColumnStretch(1, 1)
+        layout.setColumnStretch(0, 2)
+        layout.setColumnStretch(1, 1)
 
 
         ### CPU utilization, top row
@@ -75,7 +77,7 @@ class MainWindow(QMainWindow):
 
         self.clock_lcd = QLCDNumber(5, self, objectName="clock_qlcd")
         self.clock_lcd.setSegmentStyle(QLCDNumber.Flat)
-        cpu_core_grid.addWidget(self.clock_lcd, 0, 1, 1, 3)
+        cpu_core_grid.addWidget(self.clock_lcd, 0, 2, 1, 2)
         self.setup_clock_polling()
 
         # QLCD widget per CPU core in rows of 4 widgets. This will likely not work well
@@ -92,8 +94,9 @@ class MainWindow(QMainWindow):
                 self.core_qlcd.append(qlcd)
 
 
-        ### CPU & GPU time series grid
+        ### CPU & GPU utilization time series grid
         date_axis = pg.graphicsItems.DateAxisItem.DateAxisItem(orientation="bottom")
+        date_axis.setTickSpacing(major=60, minor=0)
         percent_axis = PercentAxisItem(orientation="left")
 
         utilization_graph = pg.PlotWidget(axisItems = {"bottom": date_axis, "left": percent_axis})
@@ -112,16 +115,29 @@ class MainWindow(QMainWindow):
         # Fix y-axis range
         view_box = utilization_graph.getViewBox()
         view_box.setRange(yRange=(0,100))
-        timeline_grid.addWidget(utilization_graph, 0, 0)
+        timeline_grid.addWidget(utilization_graph)
 
         utilization_graph.setMouseEnabled(x=False, y=False)
 
 
-        ### RAM grid, bottom right
+        ### CPU & GPU temperatures
+        temperature_grid = QHBoxLayout()
+        self.cpu_temperature = QLabel("0°C", self)
+        self.gpu_temperature = QLabel("0°C", self)
+        self.cpu_temperature.setStyleSheet("background-color: black; color: #93BAFF")
+        self.gpu_temperature.setStyleSheet("background-color: black; color: #FF9393")
+  
+        temperature_grid.addWidget(self.cpu_temperature)
+        temperature_grid.addWidget(self.gpu_temperature)
+        metric_grid.addLayout(temperature_grid)
+
+
+        ### RAM grid
+        ram_grid = QVBoxLayout()
         ram_plot = pg.plot()
         ram_plot.setTitle("<h2>MEM</h2>")
 
-        x_labeled = {0: "RAM", 1: "GPU"}
+        x_labeled = {0: "RAM", 0.8: "GPU"}
         x = list(x_labeled.keys())
 
         self.system_mem_bg_used = pg.BarGraphItem(x=[x[0]], height=[0], width=0.6, brush="#0E1F06")
@@ -130,17 +146,17 @@ class MainWindow(QMainWindow):
         ram_plot.addItem(self.gpu_mem_bg_used)
 
         # Add labels on top of bars
-        bar_label_font = QFont()
-        bar_label_font.setPixelSize(20)
+        font = QFont()
+        font.setPixelSize(18)
 
         self.system_mem_bar_label = pg.TextItem("%", anchor=(0.5, 0.5))
-        self.system_mem_bar_label.setPos(0, 10)
-        self.system_mem_bar_label.setFont(bar_label_font)
+        self.system_mem_bar_label.setPos(x[0], 10)
+        self.system_mem_bar_label.setFont(font)
         ram_plot.addItem(self.system_mem_bar_label)
 
         self.gpu_mem_bar_label = pg.TextItem("%", anchor=(0.5, 0.5))
-        self.gpu_mem_bar_label.setPos(1, 10)
-        self.gpu_mem_bar_label.setFont(bar_label_font)
+        self.gpu_mem_bar_label.setPos(x[1], 10)
+        self.gpu_mem_bar_label.setFont(font)
         ram_plot.addItem(self.gpu_mem_bar_label)
 
         ram_plot.setXRange(-0.5, 2)
@@ -156,19 +172,19 @@ class MainWindow(QMainWindow):
         X_MAX = view_range[0][1]
         Y_MAX = view_range[1][1]
 
-        font = QFont()
-        font.setPixelSize(22)
         self.system_mem_label = pg.TextItem("0.0GB", fill="#0E1F06", anchor=(1,1))
         self.system_mem_label.setFont(font)
-        self.system_mem_label.setPos(X_MAX, 0.75 * Y_MAX)
+        self.system_mem_label.setPos(X_MAX, 0.75*Y_MAX)
         ram_plot.addItem(self.system_mem_label)
 
         self.gpu_mem_label = pg.TextItem("0.0GB", fill="#660000", anchor=(1,1))
         self.gpu_mem_label.setFont(font)
-        self.gpu_mem_label.setPos(X_MAX, 0.55 * Y_MAX)
+        self.gpu_mem_label.setPos(X_MAX, 0.57*Y_MAX)
         ram_plot.addItem(self.gpu_mem_label)
 
-        ram_grid.addWidget(ram_plot, 0, 0)
+        ram_grid.addWidget(ram_plot)
+        metric_grid.addLayout(ram_grid)
+
 
         self.resize(620, 420)
         self.setWindowTitle("HWMonitor")
@@ -226,6 +242,7 @@ class MainWindow(QMainWindow):
         self._update_cpu_cores(readings)
         self._update_utilization_graphs(readings)
         self._update_ram(readings)
+        self._update_temperature(readings)
 
     def _update_cpu_cores(self, readings):
         """Update CPU core QLCDs."""
@@ -265,6 +282,13 @@ class MainWindow(QMainWindow):
         self.gpu_mem_bg_used.setOpts(height=[gpu_mem_used])
         self.gpu_mem_bar_label.setText("{}%".format(gpu_mem_used))
         self.gpu_mem_label.setText("{:.1f}GB".format(readings["gpu"]["memory.used"]/1000))
+
+    def _update_temperature(self, readings):
+        """Update temperature QLabels."""
+        cpu_temperature = f"{readings['cpu']['temperature']}°C"
+        gpu_temperature = f"{readings['gpu']['temperature']}°C"
+        self.gpu_temperature.setText(cpu_temperature)
+        self.cpu_temperature.setText(gpu_temperature)
 
     def _set_qlcd_color(self, qlcd):
         """Set QLCD background color based on its value. Lighter value for low values and
