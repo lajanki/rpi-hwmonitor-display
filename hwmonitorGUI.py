@@ -65,7 +65,7 @@ class MainWindow(QMainWindow):
 
         # Close button, top right
         icon_label = QLabel(self)
-        pixmap = QPixmap("resources/iconfinder_chip_square_6137627.png")
+        pixmap = QPixmap("resources/iconfinder_gnome-system-monitor_23964.png")
         pixmap = pixmap.scaledToHeight(48)
         icon_label.setPixmap(pixmap)
         cpu_core_grid.addWidget(icon_label, 0, 0)
@@ -134,7 +134,7 @@ class MainWindow(QMainWindow):
         self.cpu_temperature.setAlignment(Qt.AlignCenter)
         self.gpu_temperature.setAlignment(Qt.AlignCenter)
         self.cpu_temperature.setStyleSheet("background-color: black; color: #93BAFF")
-        self.gpu_temperature.setStyleSheet("background-color: black; color: #FF9393")
+        self.gpu_temperature.setStyleSheet("background-color: black; color: #9F0000")
   
         temperature_grid.addWidget(self.cpu_temperature)
         temperature_grid.addWidget(self.gpu_temperature)

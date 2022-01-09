@@ -1,16 +1,17 @@
 # rpi-hwmonitor-display
-A system statistics monitor displaying host system's CPU, RAM and GPU statistics on a Raspberry Pi client. Host can be a Linux or a Windows system. Message delivery between host and client is based on Google Pub/Sub.
+A system hardware status monitor displaying host system's CPU, RAM and GPU statistics on a Raspberry Pi client. Host can be a Linux or a Windows system. Message delivery between host and client is based on Google Pub/Sub.
 
 System statistics monitored include:
- * CPU core utilizations, frequences and temperatures(*),
- * used and available RAM,
- * Nvidia GPU core utilization and temperature and memory utilization (Non Nvidia cards are not supported)
+ * CPU core utilization
+ * CPU and GPU overall utilization and temperatures
+ * GPU and total system RAM usage
+ 
 
 
 
 ![Main window](hwmonitor.png)
 
-A hardware statistics poller running on the host system to monitor send the statistics to a Pub/Sub topic where the client pulls them and displays on a PyQt5 based GUI.
+A hardware statistics poller running on the host system to monitor writes current system statistics to a Pub/Sub topic where the client pulls them and displays on a PyQt5 based GUI.
 
 ## Google Cloud Setup
 To setup you need:
@@ -19,7 +20,7 @@ To setup you need:
 
 Then,
  * fill `.template_env` with your project id, path to a downloaded service account json key file and names for your Pub/Sub topic and subscription. Rename the file to `.env`.
- * Create the topic and subscription from the file
+ * Source the file and setup your Pub/Sub topic with
     ```
     source .env
     ./setup_pubsub.sh
@@ -32,13 +33,13 @@ pip install -r requirements.txt
 ```
 
 ## Run
-To run the statistics poller:
+Run the statistics poller on the host system with:
 ```
 python poller.py
 ```
-Then, run the monitor in a different terminal with
+Then, run the monitor on the client (or in a different terminal) with
 ```
-python main.py [--fullscreen]
+python main.py
 ```
 
 ## Windows setup
