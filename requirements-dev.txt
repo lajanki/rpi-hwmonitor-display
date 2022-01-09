@@ -1,0 +1,10 @@
+google-cloud-pubsub
+ipython
+psutil
+pynvml
+PyQt5
+PyQt5-sip
+pyqtgraph
+python-dotenv
+requests
+git+https://github.com/wookayin/gpustat

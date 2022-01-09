@@ -8,7 +8,7 @@ google-api-core==1.23.0
 google-auth==1.23.0
 google-cloud-pubsub==2.1.0
 googleapis-common-protos==1.52.0
-gpustat==0.6.0
+gpustat @ git+https://github.com/wookayin/gpustat@ada8ce7fc041740be901d7a9b852e0d7ca72b7ce
 grpc-google-iam-v1==0.12.3
 grpcio==1.33.2
 idna==2.10

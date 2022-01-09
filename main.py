@@ -21,6 +21,10 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     hw_monitor = hwmonitorGUI.MainWindow()
+    
+    with open("style.qss") as f:
+        hw_monitor.setStyleSheet(f.read())
+
     hw_monitor.show()
 
     if args.debug:

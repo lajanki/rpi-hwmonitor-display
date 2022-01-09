@@ -22,9 +22,14 @@ except pynvml.NVMLError_LibraryNotFound as e:
 
 EMPTY_TEMPLATE = {
     "cpu": {
-        "utilization": [],
-        "frequency": [],
-        "temperature": []
+        "cores": {
+            "utilization": [],
+            "frequency": [],
+            "temperature": []
+        },
+        "utilization": 0,
+        "frequency": 0,
+        "temperature": 0
     },
     "gpu": {
         "memory.used": 0,
@@ -41,6 +46,7 @@ EMPTY_TEMPLATE = {
 
 
 def get_ram_info():
+    """System memory usage via psutil."""
     mem = psutil.virtual_memory()
     return {
         "total": int(mem.total / 1000**2),
@@ -49,6 +55,7 @@ def get_ram_info():
     }
 
 def get_gpu_info():
+    """GPU usage via gpustat. Linux only."""
     if IGNORE_GPU:
         stats = {
             "memory.used": 0,
@@ -69,13 +76,20 @@ def get_gpu_info():
     return stats
 
 def _get_cpu_info_psutil():
-    """Fetch current CPU core temperature, frequnces and loads using psutil."""
-    cpu_temps = psutil.sensors_temperatures()
-    temperatures = [int(item.current) for item in cpu_temps["coretemp"] if "Core" in item.label]
-    frequences = [int(item.current) for item in psutil.cpu_freq(percpu=True)]
-    load = list(map(int, psutil.cpu_percent(percpu=True)))
+    """CPU usage via psutil. Linux only."""
+    temps = psutil.sensors_temperatures()
+    stats = {
+        "cores": {
+            "utilization": list(map(int, psutil.cpu_percent(percpu=True))),
+            "frequency": [int(item.current) for item in psutil.cpu_freq(percpu=True)],
+            "temperature":  [int(item.current) for item in temps["coretemp"] if "Core" in item.label]
+        },
+        "utilization": int(psutil.cpu_percent()),
+        "frequency": int(psutil.cpu_freq().current),
+        "temperature": int(temps["coretemp"][0].current)
+    }
 
-    return {"utilization": load, "frequency": frequences, "temperature": temperatures }
+    return stats
 
 def _get_cpu_and_gpu_info_wmi():
     """Fetch current CPU and GPU using wmi (Windows Management Instrumentation) and OpenHardwareMonitor.
@@ -86,9 +100,14 @@ def _get_cpu_and_gpu_info_wmi():
     https://openhardwaremonitor.org/
     """
     cpu = {
-        "utilization": [],
-        "frequency": [],
-        "temperature": []
+        "cores": {
+            "utilization": {},
+            "frequency": {},
+            "temperature": {}
+        },
+        "utilization": 0,
+        "frequency": 0,
+        "temperature": 0
     }
     gpu = {
         "memory.used": 0,
@@ -96,25 +115,31 @@ def _get_cpu_and_gpu_info_wmi():
         "utilization": 0,
         "temperature": 0
     }
+
     for sensor in w.Sensor():
         if sensor.SensorType == "Temperature":
-            if sensor.Name.startswith("CPU Core #"):
-                cpu["temperature"].append((int(sensor.Value), int(sensor.Name[-1])))
+            if sensor.Name.startswith("CPU Core #"):                
+                cpu["cores"]["temperature"][sensor.Identifier] = int(sensor.value)
+
+            if sensor.Name == "CPU Package":
+                cpu["temperature"] = int(sensor.value)
 
             if sensor.Name == "GPU Core":
-                gpu["temperature"] = int(sensor.Value)
+                gpu["temperature"] = int(sensor.value)
 
         elif sensor.SensorType == "Clock":
             if sensor.Name.startswith("CPU Core #"):
-                cpu["frequency"].append((int(sensor.Value), int(sensor.Name[-1])))
+                cpu["cores"]["frequency"][sensor.Identifier] = int(sensor.Value)
 
         elif sensor.SensorType == "Load":
             if sensor.Name.startswith("CPU Core #"):
-                cpu["utilization"].append((int(sensor.Value), int(sensor.Name[-1])))
+                cpu["cores"]["utilization"][sensor.Identifier] = int(sensor.Value)
+
+            if sensor.Name == "CPU Total":
+                cpu["utilization"] = int(sensor.value)
 
             if sensor.Name == "GPU Core":
                 gpu["utilization"] = int(sensor.value)
-
 
         elif sensor.SensorType == "SmallData":
             if sensor.Name == "GPU Memory Used":
@@ -123,9 +148,9 @@ def _get_cpu_and_gpu_info_wmi():
             if sensor.Name == "GPU Memory Total":
                 gpu["memory.total"] = int(sensor.value)
 
+    # Transform CPU core values to list and sort by core index
+    for key in cpu["cores"]:
+        identifiers = sorted(list(cpu["cores"][key].keys()))
+        cpu["cores"][key] = [cpu["cores"][key][i] for i in identifiers]
 
-    # Sort CPU values by core
-    for key in cpu:
-        cpu[key] = [t[0] for t in sorted(cpu[key], key=lambda token: token[1])]
-
-    return {"cpu": cpu, "gpu": gpu }
+    return {"cpu": cpu, "gpu": gpu}
