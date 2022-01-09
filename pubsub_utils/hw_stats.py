@@ -2,13 +2,12 @@ import logging
 
 import psutil
 import pynvml
-import gpustat
 
 try:
     import wmi
     w = wmi.WMI(namespace="root\OpenHardwareMonitor")
 except ImportError:
-    pass
+    import gpustat
 
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
