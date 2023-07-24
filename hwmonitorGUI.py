@@ -96,14 +96,15 @@ class MainWindow(QMainWindow):
 
         self.cpu_stats_qlcd["Load 1 min"].setDigitCount(3)
         
-        core_utilization_button = QPushButton("cores")
+        core_utilization_button = QPushButton("cores ")
+        core_utilization_button.setIcon(QIcon("resources/iconfinder_chip_square_6137627.png"))
+        core_utilization_button.setLayoutDirection(Qt.RightToLeft)
+        cpu_stats_grid.addWidget(core_utilization_button, 1, 3)
         core_utilization_button.setSizePolicy(
             QSizePolicy.Preferred,
             QSizePolicy.Preferred
         )
-        cpu_stats_grid.addWidget(core_utilization_button, 1, 3)
         core_utilization_button.clicked.connect(self.show_core_window)
-        core_utilization_button.setIcon(QIcon("resources/iconfinder_chip_square_6137627.png"))
 
 
         ### CPU & GPU utilization time series grid
