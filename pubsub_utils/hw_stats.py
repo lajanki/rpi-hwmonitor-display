@@ -6,7 +6,7 @@ import pynvml
 try:
     import wmi
     w = wmi.WMI(namespace="root\OpenHardwareMonitor")
-except ImportError:
+except (ImportError, ModuleNotFoundError):
     import gpustat
 
 
@@ -27,9 +27,11 @@ EMPTY_TEMPLATE = {
             "frequency": [],
             "temperature": []
         },
-        "utilization": 0,
+        "utilization": 0,  # system-wide CPU utilization as a percentage; percentage of total CPU time.
         "frequency": 0,
-        "temperature": 0
+        "temperature": 0,
+        "1_min_load_average": 0, # Linux 1 minute load average: number of tasks currently executed by the CPU and tasks waiting in the queue
+        "num_high_load_cores": 0  # Number of cores with utilization above p%
     },
     "gpu": {
         "memory.used": 0,
@@ -86,7 +88,9 @@ def _get_cpu_info_psutil():
         },
         "utilization": int(psutil.cpu_percent()),
         "frequency": int(psutil.cpu_freq().current),
-        "temperature": int(temps["coretemp"][0].current)
+        "temperature": int(temps["coretemp"][0].current),
+        "1_min_load_average": psutil.getloadavg()[0],
+        "num_high_load_cores": len([c for c in psutil.cpu_percent(percpu=True) if c > 0.5])
     }
 
     return stats

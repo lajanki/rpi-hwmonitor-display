@@ -35,6 +35,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.core_window = CPUCoreWindow()
         self.init_ui()
         self.setup_pubsub_pull()
 
@@ -46,11 +47,11 @@ class MainWindow(QMainWindow):
         layout = QGridLayout()
         main_widget.setLayout(layout)
 
-        cpu_core_grid = QGridLayout()
+        cpu_stats_grid = QGridLayout()
         timeline_grid = QVBoxLayout()
         metric_grid = QVBoxLayout()
 
-        layout.addLayout(cpu_core_grid, 0, 0, 1, 2)
+        layout.addLayout(cpu_stats_grid, 0, 0, 1, 2)
         layout.addLayout(timeline_grid, 1, 0)
         layout.addLayout(metric_grid, 1, 1)
 
@@ -68,12 +69,12 @@ class MainWindow(QMainWindow):
         pixmap = QPixmap("resources/iconfinder_gnome-system-monitor_23964.png")
         pixmap = pixmap.scaledToHeight(48)
         icon_label.setPixmap(pixmap)
-        cpu_core_grid.addWidget(icon_label, 0, 0)
+        cpu_stats_grid.addWidget(icon_label, 0, 0)
 
         close_button = QPushButton("Close ")
         close_button.setIcon(QIcon("resources/iconfinder_Close_1891023.png"))
         close_button.setLayoutDirection(Qt.RightToLeft)
-        cpu_core_grid.addWidget(close_button, 0, 3)
+        cpu_stats_grid.addWidget(close_button, 0, 3)
         close_button.clicked.connect(self.stop_thread_and_exit)
         close_button.setSizePolicy(
             QSizePolicy.Preferred,
@@ -82,22 +83,28 @@ class MainWindow(QMainWindow):
 
         self.clock_lcd = QLCDNumber(5, self, objectName="clock_qlcd")
         self.clock_lcd.setSegmentStyle(QLCDNumber.Flat)
-        cpu_core_grid.addWidget(self.clock_lcd, 0, 1, 1, 2)
+        cpu_stats_grid.addWidget(self.clock_lcd, 0, 1, 1, 2)
         self.setup_clock_polling()
 
-        ### CPU core utilizations
-        # QLCD widget per core in rows of 4 widgets. This will likely not work well
-        # with very high core number.
-        QLCD_PER_ROW = 4
-        self.core_qlcd = []
-        for row in range(os.cpu_count()//QLCD_PER_ROW):
-            for col in range(QLCD_PER_ROW):
-                qlcd = QLCDNumber(self)
-                qlcd.setDigitCount(2)
-                qlcd.display(0)
-                qlcd.setSegmentStyle(QLCDNumber.Flat)
-                cpu_core_grid.addWidget(qlcd, row+1, col)
-                self.core_qlcd.append(qlcd)
+        ### CPU utilization statistics - QLCDs
+        self.cpu_stats_qlcd = {}
+        for i, name in enumerate(["%", "Load 1 min", "#High"]):
+            qlcd = QLCDNumber(self)
+            qlcd.setDigitCount(2)
+            qlcd.setSegmentStyle(QLCDNumber.Flat)
+            cpu_stats_grid.addWidget(qlcd, 1, i)
+            self.cpu_stats_qlcd[name] = qlcd            
+
+        self.cpu_stats_qlcd["Load 1 min"].setDigitCount(3)
+        
+        core_utilization_button = QPushButton("cores")
+        core_utilization_button.setSizePolicy(
+            QSizePolicy.Preferred,
+            QSizePolicy.Preferred
+        )
+        cpu_stats_grid.addWidget(core_utilization_button, 1, 3)
+        core_utilization_button.clicked.connect(self.show_core_window)
+        core_utilization_button.setIcon(QIcon("resources/iconfinder_chip_square_6137627.png"))
 
 
         ### CPU & GPU utilization time series grid
@@ -241,27 +248,37 @@ class MainWindow(QMainWindow):
         self.stop_worker.emit()
         self.thread.exit()
         self.thread.wait()
+        self.core_window.close()
         self.close()
+
+    @pyqtSlot()
+    def show_core_window(self):
+        """Show CPU core utilization window."""
+        self.core_window.show()
 
     @pyqtSlot(dict)
     def update_readings(self, readings):
         """slot for SubscriberThread: receives latest hardware readings
         and updates the GUI.
         """
-        self._update_cpu_cores(readings)
+        self._update_cpu_stat_cards(readings)
         self._update_utilization_graphs(readings)
         self._update_ram(readings)
         self._update_temperature(readings)
+        self.core_window._update_cpu_cores(readings)
 
-    def _update_cpu_cores(self, readings):
-        """Update CPU core QLCDs."""
-        for i, qlcd in enumerate(self.core_qlcd):
-            try:
-                val = readings["cpu"]["cores"]["utilization"][i]
-            except IndexError:
-                val = 0
-            qlcd.display(val)
-            self._set_qlcd_color(qlcd)
+    def _update_cpu_stat_cards(self, readings):
+        """Update CPU statistics QLCDs"""
+        qlcd = self.cpu_stats_qlcd["%"]
+        val = readings["cpu"]["utilization"]
+        qlcd.display(val)
+        utils.set_qlcd_color(qlcd)
+
+        val = readings["cpu"]["1_min_load_average"]
+        self.cpu_stats_qlcd["Load 1 min"].display(val)
+
+        val = readings["cpu"]["num_high_load_cores"]
+        self.cpu_stats_qlcd["#High"].display(val)
 
     def _update_utilization_graphs(self, readings):
         """Update utilization time series graph. Remove oldest item and add new reading as latest."""
@@ -299,24 +316,41 @@ class MainWindow(QMainWindow):
         self.gpu_temperature.setText(cpu_temperature)
         self.cpu_temperature.setText(gpu_temperature)
 
-    def _set_qlcd_color(self, qlcd):
-        """Set QLCD background color based on its value. Lighter value for low values and
-        darker for high values.
-        Uses HSL color codes with varying lightness value.
-        """ 
-        value = qlcd.intValue()
 
-        # saturation: 20 -> 42 and 100 -> 100
-        saturation = utils.interpolate((20, 42), (100, 100), value)
-        
-        # lightness: 20 -> 79 and 100 -> 30
-        lightness = utils.interpolate((20, 79), (100, 30), value)
+class CPUCoreWindow(QWidget):
+    """Window for cpu core utilizations."""
+    def __init__(self):
+        super().__init__()
+        layout = QGridLayout()
 
-        if value <= 20:
-            saturation = 42
-            lightness = 79
-            
-        qlcd.setStyleSheet(f"QLCDNumber {{ background-color: hsl(218, {saturation}%, {lightness}%) }}")
+        ### CPU core utilizations
+        # QLCD widget per core in rows of 4 widgets.
+        QLCD_PER_ROW = 4
+        self.core_qlcd = []
+        for row in range(os.cpu_count()//QLCD_PER_ROW):
+            for col in range(QLCD_PER_ROW):
+                qlcd = QLCDNumber(self)
+                qlcd.setDigitCount(2)
+                qlcd.display(0)
+                qlcd.setSegmentStyle(QLCDNumber.Flat)
+                layout.addWidget(qlcd, row+1, col)
+                self.core_qlcd.append(qlcd)
+
+        # self.label = QLabel("Another Window")
+        # layout.addWidget(self.label)
+        self.setLayout(layout)
+        self.resize(620, 420)
+        self.setWindowTitle("CPU core utilization")
+
+    def _update_cpu_cores(self, readings):
+        """Update CPU core QLCDs."""
+        for i, qlcd in enumerate(self.core_qlcd):
+            try:
+                val = readings["cpu"]["cores"]["utilization"][i]
+            except IndexError:
+                val = 0
+            qlcd.display(val)
+            utils.set_qlcd_color(qlcd)
 
 
 class PubSubWorker(QObject):
