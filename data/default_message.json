@@ -1,0 +1,26 @@
+{
+    "cpu": {
+        "utilization": 0,  // system-wide CPU utilization as a percentage; percentage of total CPU time.
+        "frequency": 0,
+        "temperature": 0,
+        "1_min_load_average": 0.0,      // Linux 1 minute load average: number of tasks currently executed by the CPU and tasks waiting in the queue
+        "num_high_load_cores": 0,       // Number of cores with utilization above p%
+        "cores": {
+            "utilization": [],
+            "frequency": [],
+            "temperature": []
+        }
+    },
+    "gpu": {
+        "memory.used": 0,   // GPU memory usage in MB
+        "memory.total": 1,  // non zero default value to avoid division by zero
+        "utilization": 0,
+        "temperature": 0
+    },
+    /* System RAM usage in MB */
+    "ram": {
+        "total": 1,
+        "used": 0,
+        "available": 0
+    }
+}

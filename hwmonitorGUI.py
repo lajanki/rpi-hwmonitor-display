@@ -22,7 +22,6 @@ from PyQt5.QtWidgets import (
 import pyqtgraph as pg
 
 from pubsub_utils import UPDATE_INTERVAL
-from pubsub_utils.hw_stats import EMPTY_TEMPLATE
 from pubsub_utils.subscriber import Subscriber
 import utils
 
@@ -380,7 +379,7 @@ class PubSubWorker(QObject):
 
                     # Emit an empty response with current timestamp to avoid
                     # discarding it as too old.
-                    readings = EMPTY_TEMPLATE.copy()
+                    readings = utils.get_default_message()
                     readings["timestamp"] = time.time()
                     self.update.emit(readings)
 

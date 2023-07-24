@@ -2,6 +2,7 @@ google-cloud-pubsub
 gpustat
 ipython
 psutil
+pyjson5
 PyQt5
 PyQt5-sip
 pyqtgraph

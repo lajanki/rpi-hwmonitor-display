@@ -20,40 +20,14 @@ except pynvml.NVMLError_LibraryNotFound as e:
     logging.warning(str(e))
     IGNORE_GPU = True
 
-EMPTY_TEMPLATE = {
-    "cpu": {
-        "cores": {
-            "utilization": [],
-            "frequency": [],
-            "temperature": []
-        },
-        "utilization": 0,  # system-wide CPU utilization as a percentage; percentage of total CPU time.
-        "frequency": 0,
-        "temperature": 0,
-        "1_min_load_average": 0, # Linux 1 minute load average: number of tasks currently executed by the CPU and tasks waiting in the queue
-        "num_high_load_cores": 0  # Number of cores with utilization above p%
-    },
-    "gpu": {
-        "memory.used": 0,
-        "memory.total": 1, # non zero default value to avoid division by zero
-        "utilization": 0,
-        "temperature": 0
-    },
-    "ram": {
-        "total": 1,
-        "used": 0,
-        "available": 0
-    }
-}
-
 
 def get_ram_info():
-    """System memory usage via psutil."""
+    """System memory usage in MB via psutil."""
     mem = psutil.virtual_memory()
     return {
-        "total": int(mem.total / 1000**2),
-        "used": int(mem.used / 1000**2),
-        "available": int(mem.available / 1000**2)
+        "total": int(mem.total / 10**6),
+        "used": int(mem.used / 10**6),
+        "available": int(mem.available / 10**6)
     }
 
 def get_gpu_info():
@@ -69,7 +43,7 @@ def get_gpu_info():
     else:
         gpustats = gpustat.GPUStatCollection.new_query().jsonify()
         stats = {
-            "memory.used": gpustats["gpus"][0]["memory.used"],
+            "memory.used": gpustats["gpus"][0]["memory.used"],  # MB
             "memory.total": gpustats["gpus"][0]["memory.total"],
             "utilization": gpustats["gpus"][0]["utilization.gpu"],
             "temperature": gpustats["gpus"][0]["temperature.gpu"]
