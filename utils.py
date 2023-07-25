@@ -1,5 +1,9 @@
 import pyjson5
 
+
+with open("./data/default_message.jsonc") as f:
+    DEFAULT_MESSAGE = pyjson5.load(f)
+
 def interpolate(p1, p2, x):
     """Compute value at x for the linear function
     passing through p1 and p2.
@@ -27,9 +31,3 @@ def set_qlcd_color(qlcd):
         lightness = 79
         
     qlcd.setStyleSheet(f"QLCDNumber {{ background-color: hsl(218, {saturation}%, {lightness}%) }}")
-
-def get_default_message():
-    """Load default message."""
-    with open("./data/default_message.json") as f:
-        message = pyjson5.load(f)
-    return message
