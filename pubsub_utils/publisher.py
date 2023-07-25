@@ -20,7 +20,7 @@ def get_stats():
     """Gather various CPU, GPU and RAM statistics to a dict to be sent
     as pubsub message.
     """
-    stats = hw_stats.EMPTY_TEMPLATE.copy()
+    stats = {}
 
     if os.name == "nt":
         import pythoncom
@@ -65,11 +65,11 @@ def publish_stats():
             time.sleep(pubsub_utils.UPDATE_INTERVAL)
         
             messages_published = int(bytes_processed/MIN_PROCESS_SIZE)
-            megabytes_published = round(bytes_processed/1000**2, 2)
-            megabytes_generated = round(bytes_generated/1000**2, 2)
+            megabytes_published = round(bytes_processed/10**6, 2)
+            megabytes_generated = round(bytes_generated/10**6, 2)
 
             # Print statistics overwriting previous line
-            print(f"Messages published: {messages_published} Megabytes published: {megabytes_published}MB (generated: {megabytes_generated}MB)", end="\r")
+            print(f"Messages published: {messages_published} ### MB published/generated: {megabytes_published}/{megabytes_generated}", end="\r")
     except KeyboardInterrupt:
         print()
         logging.info("Exiting")

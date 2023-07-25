@@ -6,7 +6,7 @@ import pynvml
 try:
     import wmi
     w = wmi.WMI(namespace="root\OpenHardwareMonitor")
-except ImportError:
+except (ImportError, ModuleNotFoundError):
     import gpustat
 
 
@@ -20,38 +20,14 @@ except pynvml.NVMLError_LibraryNotFound as e:
     logging.warning(str(e))
     IGNORE_GPU = True
 
-EMPTY_TEMPLATE = {
-    "cpu": {
-        "cores": {
-            "utilization": [],
-            "frequency": [],
-            "temperature": []
-        },
-        "utilization": 0,
-        "frequency": 0,
-        "temperature": 0
-    },
-    "gpu": {
-        "memory.used": 0,
-        "memory.total": 1, # non zero default value to avoid division by zero
-        "utilization": 0,
-        "temperature": 0
-    },
-    "ram": {
-        "total": 1,
-        "used": 0,
-        "available": 0
-    }
-}
-
 
 def get_ram_info():
-    """System memory usage via psutil."""
+    """System memory usage in MB via psutil."""
     mem = psutil.virtual_memory()
     return {
-        "total": int(mem.total / 1000**2),
-        "used": int(mem.used / 1000**2),
-        "available": int(mem.available / 1000**2)
+        "total": int(mem.total / 10**6),
+        "used": int(mem.used / 10**6),
+        "available": int(mem.available / 10**6)
     }
 
 def get_gpu_info():
@@ -67,7 +43,7 @@ def get_gpu_info():
     else:
         gpustats = gpustat.GPUStatCollection.new_query().jsonify()
         stats = {
-            "memory.used": gpustats["gpus"][0]["memory.used"],
+            "memory.used": gpustats["gpus"][0]["memory.used"],  # MB
             "memory.total": gpustats["gpus"][0]["memory.total"],
             "utilization": gpustats["gpus"][0]["utilization.gpu"],
             "temperature": gpustats["gpus"][0]["temperature.gpu"]
@@ -86,7 +62,9 @@ def _get_cpu_info_psutil():
         },
         "utilization": int(psutil.cpu_percent()),
         "frequency": int(psutil.cpu_freq().current),
-        "temperature": int(temps["coretemp"][0].current)
+        "temperature": int(temps["coretemp"][0].current),
+        "1_min_load_average": psutil.getloadavg()[0],
+        "num_high_load_cores": len([c for c in psutil.cpu_percent(percpu=True) if c > 0.5])
     }
 
     return stats
