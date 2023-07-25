@@ -3,7 +3,6 @@ import time
 import os
 import json
 
-from google.api_core.exceptions import DeadlineExceeded
 import numpy as np
 from PyQt5.QtGui import QFont, QIcon, QPixmap
 from PyQt5.QtCore import Qt, QObject, QThread, QTimer, pyqtSlot, pyqtSignal
@@ -26,14 +25,15 @@ from pubsub_utils.subscriber import Subscriber
 import utils
 
 
-logger = logging.getLogger()
+logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 
 
 class MainWindow(QMainWindow):
-    stop_worker = pyqtSignal()
+    """Main GUI window."""
 
     def __init__(self):
         super().__init__()
+        self.null_timer = QTimer(self)
         self.core_window = CPUCoreWindow()
         self.init_ui()
         self.setup_pubsub_pull()
@@ -222,11 +222,12 @@ class MainWindow(QMainWindow):
         self.worker.moveToThread(self.thread)
 
         # Connect signals and slots
-        self.stop_worker.connect(self.worker.stop)
         self.thread.started.connect(self.worker.run)
         self.thread.finished.connect(self.thread.deleteLater)
         self.worker.update.connect(self.update_readings)
 
+        # Setup timer for emptying current readings
+        self.null_timer.timeout.connect(self.empty_readings)
         self.thread.start()
 
     def setup_clock_polling(self):
@@ -245,9 +246,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def stop_thread_and_exit(self):
         """Stop any running SubscriberThread and exit the application."""
-        self.stop_worker.emit()
         self.thread.exit()
-        self.thread.wait()
         self.core_window.close()
         self.close()
 
@@ -261,6 +260,7 @@ class MainWindow(QMainWindow):
         """slot for SubscriberThread: receives latest hardware readings
         and updates the GUI.
         """
+        self.null_timer.start((UPDATE_INTERVAL+1) * 1000)
         self._update_cpu_stat_cards(readings)
         self._update_utilization_graphs(readings)
         self._update_ram(readings)
@@ -316,6 +316,12 @@ class MainWindow(QMainWindow):
         self.gpu_temperature.setText(cpu_temperature)
         self.cpu_temperature.setText(gpu_temperature)
 
+    def empty_readings(self):
+        """Emit and empty readings response to empty UI elements."""
+        logging.info("Nothing received from topic for a while, resetting charts.")
+        readings = utils.DEFAULT_MESSAGE
+        readings["timestamp"] = time.time()
+        self.update_readings(readings)
 
 class CPUCoreWindow(QWidget):
     """Window for cpu core utilizations."""
@@ -336,8 +342,6 @@ class CPUCoreWindow(QWidget):
                 layout.addWidget(qlcd, row+1, col)
                 self.core_qlcd.append(qlcd)
 
-        # self.label = QLabel("Another Window")
-        # layout.addWidget(self.label)
         self.setLayout(layout)
         self.resize(620, 420)
         self.setWindowTitle("CPU core utilization")
@@ -354,49 +358,23 @@ class CPUCoreWindow(QWidget):
 
 
 class PubSubWorker(QObject):
+    """Worker class for Pub/Sub thread."""
     update = pyqtSignal(dict)
 
     def __init__(self):
         super().__init__()
-        self.pull_timer = QTimer(self)
+        self.subscriber = Subscriber()
+
+    def process_response(self, message):
+        """Callback for streaming pull: emit message back to the main thread."""
+        readings = json.loads(message.data.decode("utf-8"))
+        readings["timestamp"] = message.publish_time.timestamp()
+        self.update.emit(readings)
+        message.ack()
 
     def run(self):
-        """Setup a Pub/Sub message pull every UPDATE_INTERVAL seconds."""
-        empty_pull_counter = 0
-        subscriber = Subscriber()
-
-        def pull():
-            nonlocal empty_pull_counter
-            try:
-                message = subscriber.pull_message()
-                readings = json.loads(message.data.decode("utf-8"))
-                readings["timestamp"] = message.publish_time.timestamp()
-                self.update.emit(readings)
-                empty_pull_counter = 0
-            except DeadlineExceeded:
-                # If this is the 2nd consecutive empty pull, reset all widgets
-                if empty_pull_counter >= 1:
-                    logger.info("Nothing received from topic for a while, resetting charts.")
-
-                    # Emit an empty response with current timestamp to avoid
-                    # discarding it as too old.
-                    readings = utils.get_default_message()
-                    readings["timestamp"] = time.time()
-                    self.update.emit(readings)
-
-                    empty_pull_counter += 1
-                else:
-                    logger.debug("Nothing received from topic.")
-                    empty_pull_counter += 1
-
-        subscriber.seek_to_time(int(time.time()))
-        pull()
-        self.pull_timer.timeout.connect(pull)
-        self.pull_timer.start(UPDATE_INTERVAL * 1000)
-
-    @pyqtSlot()
-    def stop(self):
-        self.pull_timer.stop()
+        self.subscriber.seek_to_time(int(time.time()))
+        self.subscriber.setup_streaming_pull(self.process_response)
 
 
 class PercentAxisItem(pg.AxisItem):
