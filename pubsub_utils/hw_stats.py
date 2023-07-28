@@ -87,17 +87,17 @@ def get_cpu_info():
 
 def _get_cpu_temps():
     """Get CPU temperature using either psutil (Linux) or
-    wmi (Windows Management Instrumentation) and OpenHardwareMonitor (Windows).
+    wmi (Windows Management Instrumentation) and LibreHardwareMonitor (Windows).
     On Windows this requires Open Hardware Monitor running in the background.
         http://timgolden.me.uk/python/wmi/index.html
-        https://openhardwaremonitor.org/
+        https://github.com/LibreHardwareMonitor/LibreHardwareMonitor
     Return:
         A list of CoreTemp named tuples. One element for each core and one for
         the whole CPU unit.
     """
     if os.name == "nt":
         import wmi
-        w = wmi.WMI(namespace="root\OpenHardwareMonitor")
+        w = wmi.WMI(namespace="root\LibreHardwareMonitor")
         values = [CoreTemp(sensor.Name, sensor.value) for sensor in w.Sensor()
                   if sensor.SensorType == "Temperature"
                     and sensor.Name.startswith(("CPU Core #", "CPU Package"))]
@@ -113,17 +113,17 @@ def _get_cpu_temps():
 
 
 def _get_cpu_and_gpu_info_wmi():
-    """Fetch current CPU and GPU using wmi (Windows Management Instrumentation) and OpenHardwareMonitor.
+    """Fetch current CPU and GPU using wmi (Windows Management Instrumentation) and LibreHardwareMonitor.
     psutil and gpustat have limited functionality in Windows, so third party application
     is used instead.
-    Requires https://openhardwaremonitor.org/ running in the background.
+    Requires LibreHardwareMonitor running in the background.
     http://timgolden.me.uk/python/wmi/index.html.
-    https://openhardwaremonitor.org/
+    https://github.com/LibreHardwareMonitor/LibreHardwareMonitor
     """
     template = utils.DEFAULT_MESSAGE.copy()
 
     import wmi
-    w = wmi.WMI(namespace="root\OpenHardwareMonitor")
+    w = wmi.WMI(namespace="root\LibreHardwareMonitor")
     for sensor in w.Sensor():
         if sensor.SensorType == "Temperature":
             if sensor.Name.startswith("CPU Core #"):                

@@ -43,7 +43,7 @@ python main.py
 ```
 
 ## Windows setup
-Running the poller on Windows requires some additional preparations. The library used to poll CPU statistics on Linux, `psutil`, has limited functionality on Windows. In order to retain it, polling on Windows relies on a 3rd party software, [Open Hardware Monitor](https://openhardwaremonitor.org/). Download the monitor and run it in the background. Having it automatically start on Windows startup is recommended.
+Running the poller on Windows requires some additional preparations. The library used to poll CPU statistics on Linux, `psutil`, has limited functionality on Windows. In order to retain it, polling on Windows relies on a 3rd party software, [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor). Download the monitor and run it in the background. Having it automatically start on Windows startup is recommended.
 
 Next, install Windows only dependencies with
 ```
