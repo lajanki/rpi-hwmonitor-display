@@ -4,7 +4,6 @@ import os
 
 import psutil
 import pynvml
-import gpustat
 
 import utils
 
@@ -43,26 +42,10 @@ def get_gpu_info():
             "utilization": util_info.gpu,
             "temperature": temp_info
         }
-    except pynvml.NVMLError_LibraryNotFound as e:
-        logging.warning("Unable to load gpustat, defaulting to empty values")
-        stats = utils.DEFAULT_MESSAGE["gpu"]
-    finally:
         pynvml.nvmlShutdown()
 
-    return stats
-
-def get_gpustat_info():
-    """GPU usage via gpustat. Nvidia only."""
-    try:
-        gpustats = gpustat.GPUStatCollection.new_query().jsonify()
-        stats = {
-            "memory.used": gpustats["gpus"][0]["memory.used"],  # MB
-            "memory.total": gpustats["gpus"][0]["memory.total"],
-            "utilization": gpustats["gpus"][0]["utilization.gpu"],
-            "temperature": gpustats["gpus"][0]["temperature.gpu"]
-        }
     except pynvml.NVMLError_LibraryNotFound as e:
-        logging.warning("Unable to load gpustat, defaulting to empty values")
+        logging.warning("Unable to load pynvml library, defaulting to empty values")
         stats = utils.DEFAULT_MESSAGE["gpu"]
 
     return stats
@@ -100,7 +83,9 @@ def _get_cpu_temps():
         w = wmi.WMI(namespace="root\LibreHardwareMonitor")
         values = [CoreTemp(sensor.Name, sensor.value) for sensor in w.Sensor()
                   if sensor.SensorType == "Temperature"
-                    and sensor.Name.startswith(("CPU Core #", "CPU Package"))]
+                    and sensor.Name.startswith(("CPU Core #", "CPU Package"))
+                    and "Distance to TjMax" not in sensor.Name]
+
     else:
         temps = psutil.sensors_temperatures()["coretemp"]
         values = [CoreTemp(t.label, t.current) for t in temps]
@@ -109,56 +94,3 @@ def _get_cpu_temps():
     # numeric index but rather ensure result will always be in he same order.
     values.sort(key=lambda c: c.label)
     return values
-
-
-
-def _get_cpu_and_gpu_info_wmi():
-    """Fetch current CPU and GPU using wmi (Windows Management Instrumentation) and LibreHardwareMonitor.
-    psutil and gpustat have limited functionality in Windows, so third party application
-    is used instead.
-    Requires LibreHardwareMonitor running in the background.
-    http://timgolden.me.uk/python/wmi/index.html.
-    https://github.com/LibreHardwareMonitor/LibreHardwareMonitor
-    """
-    template = utils.DEFAULT_MESSAGE.copy()
-
-    import wmi
-    w = wmi.WMI(namespace="root\LibreHardwareMonitor")
-    for sensor in w.Sensor():
-        if sensor.SensorType == "Temperature":
-            if sensor.Name.startswith("CPU Core #"):                
-                template["cpu"]["cores"]["temperature"][sensor.Identifier] = int(sensor.value)
-
-            if sensor.Name == "CPU Package":
-                template["cpu"]["temperature"] = int(sensor.value)
-
-            if sensor.Name == "GPU Core":
-                template["gpu"]["temperature"] = int(sensor.value)
-
-        elif sensor.SensorType == "Clock":
-            if sensor.Name.startswith("CPU Core #"):
-                template["cpu"]["cores"]["frequency"][sensor.Identifier] = int(sensor.Value)
-
-        elif sensor.SensorType == "Load":
-            if sensor.Name.startswith("CPU Core #"):
-                template["cpu"]["cores"]["utilization"][sensor.Identifier] = int(sensor.Value)
-
-            if sensor.Name == "CPU Total":
-                template["cpu"]["utilization"] = int(sensor.value)
-
-            if sensor.Name == "GPU Core":
-                template["gpu"]["utilization"] = int(sensor.value)
-
-        elif sensor.SensorType == "SmallData":
-            if sensor.Name == "GPU Memory Used":
-                template["gpu"]["memory.used"] = int(sensor.value)
-
-            if sensor.Name == "GPU Memory Total":
-                template["gpu"]["memory.total"] = int(sensor.value)
-
-    # Transform CPU core values to list and sort by core index
-    for key in template["cpu"]["cores"]:
-        identifiers = sorted(list(template["cpu"]["cores"][key].keys()))
-        template["cpu"]["cores"][key] = [template["cpu"]["cores"][key][i] for i in identifiers]
-
-    return template
