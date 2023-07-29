@@ -227,7 +227,7 @@ class MainWindow(QMainWindow):
         self.worker.update.connect(self.update_readings)
 
         # Setup timer for emptying current readings
-        self.null_timer.timeout.connect(self.empty_readings)
+        #self.null_timer.timeout.connect(self.empty_readings)
         self.thread.start()
 
     def setup_clock_polling(self):
@@ -260,7 +260,7 @@ class MainWindow(QMainWindow):
         """slot for SubscriberThread: receives latest hardware readings
         and updates the GUI.
         """
-        self.null_timer.start((UPDATE_INTERVAL+1) * 1000)
+        #self.null_timer.start((UPDATE_INTERVAL+1) * 1000)
         self._update_cpu_stat_cards(readings)
         self._update_utilization_graphs(readings)
         self._update_ram(readings)
@@ -325,37 +325,57 @@ class MainWindow(QMainWindow):
 
 class CPUCoreWindow(QWidget):
     """Window for cpu core utilizations."""
+    COLUMNS_PER_ROW = 5
+
     def __init__(self):
         super().__init__()
-        layout = QGridLayout()
+        self.layout = QGridLayout()
+        self.qlcd_widgets = []
 
-        ### CPU core utilizations
-        # QLCD widget per core in rows of 4 widgets.
-        QLCD_PER_ROW = 4
-        self.core_qlcd = []
-        for row in range(os.cpu_count()//QLCD_PER_ROW):
-            for col in range(QLCD_PER_ROW):
-                qlcd = QLCDNumber(self)
-                qlcd.setDigitCount(2)
-                qlcd.display(0)
-                qlcd.setSegmentStyle(QLCDNumber.Flat)
-                layout.addWidget(qlcd, row+1, col)
-                self.core_qlcd.append(qlcd)
+        # Button for closing the window, top right.
+        close_button = QPushButton("Close ")
+        close_button.setIcon(QIcon("resources/iconfinder_Close_1891023.png"))
+        close_button.setLayoutDirection(Qt.RightToLeft)
+        close_button.clicked.connect(lambda: self.close())
+        close_button.setSizePolicy(
+            QSizePolicy.Preferred,
+            QSizePolicy.Preferred
+        )
 
-        self.setLayout(layout)
+        self.empty_label = QLabel("Waiting for data...", self)
+        self.layout.addWidget(self.empty_label, 1, CPUCoreWindow.COLUMNS_PER_ROW-1)
+
+        self.layout.addWidget(close_button, 0, CPUCoreWindow.COLUMNS_PER_ROW-1)
+        self.setLayout(self.layout)
         self.resize(620, 420)
         self.setWindowTitle("CPU core utilization")
 
     def _update_cpu_cores(self, readings):
-        """Update CPU core QLCDs."""
-        for i, qlcd in enumerate(self.core_qlcd):
-            try:
-                val = readings["cpu"]["cores"]["utilization"][i]
-            except IndexError:
-                val = 0
-            qlcd.display(val)
-            utils.set_qlcd_color(qlcd)
-
+        """Update Core utilization values. The number of cores is not known
+        until the first response is received from the poller.
+        Create a QLCD widget for each core if not already created
+        and update the values.
+        """
+        # Remove the dummy label
+        self.empty_label.setParent(None)
+        if not self.qlcd_widgets:
+            NUM_CORES = len(readings["cpu"]["cores"]["utilization"])
+            for row in range(NUM_CORES//CPUCoreWindow.COLUMNS_PER_ROW):
+                for col in range(CPUCoreWindow.COLUMNS_PER_ROW):
+                    qlcd = QLCDNumber(self)
+                    qlcd.setDigitCount(2)
+                    qlcd.setSegmentStyle(QLCDNumber.Flat)
+                    self.layout.addWidget(qlcd, row+2, col)
+                    self.qlcd_widgets.append(qlcd)
+        else:
+            for i, qlcd in enumerate(self.qlcd_widgets):
+                try:
+                    val = readings["cpu"]["cores"]["utilization"][i]
+                except IndexError:
+                    val = 0
+                qlcd.display(val)
+                utils.set_qlcd_color(qlcd)
+ 
 
 class PubSubWorker(QObject):
     """Worker class for Pub/Sub thread."""
