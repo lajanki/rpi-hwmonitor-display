@@ -85,7 +85,6 @@ def _get_cpu_temps():
                   if sensor.SensorType == "Temperature"
                     and sensor.Name.startswith(("CPU Core #", "CPU Package"))
                     and "Distance to TjMax" not in sensor.Name]
-
     else:
         temps = psutil.sensors_temperatures()["coretemp"]
         values = [CoreTemp(t.label, t.current) for t in temps]

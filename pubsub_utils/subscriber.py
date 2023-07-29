@@ -23,7 +23,7 @@ class Subscriber:
             callback (callable): the callback to process the messages
         """
         self.streaming_pull_future = self.client.subscribe(self.subscription_path, callback=callback)
-        logging.info(f"Listening for messages on topic {self.subscription_path}..\n")
+        logging.info(f"Listening for messages on topic {self.subscription_path}...\n")
 
         with self.client:
             try:
