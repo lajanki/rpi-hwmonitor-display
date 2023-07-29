@@ -8,6 +8,7 @@ from google.cloud import pubsub_v1
 
 import pubsub_utils
 from pubsub_utils import hw_stats
+import utils
 
 
 publisher = pubsub_v1.PublisherClient()
@@ -42,7 +43,7 @@ def publish_stats():
     try:
         while True:
             data = json.dumps(get_stats()).encode("utf-8")
-            future = publisher.publish(topic_path, data)
+            publisher.publish(topic_path, data)
 
             bytes_generated += len(data)
             bytes_processed += MIN_PROCESS_SIZE  
@@ -55,6 +56,15 @@ def publish_stats():
             # Print statistics overwriting previous line
             print(f"Messages published: {messages_published} ### MB published/generated: {megabytes_published}/{megabytes_generated}", end="\r")
     except KeyboardInterrupt:
+        # Send an empty message to clear visuals
         print()
+        logging.info("Stopping publish")
+        time.sleep(pubsub_utils.UPDATE_INTERVAL)
+
+        logging.info("Sending empty message...")
+        data = json.dumps(utils.DEFAULT_MESSAGE).encode("utf-8")
+        future = publisher.publish(topic_path, data)
+        future.result()
+
         logging.info("Exiting")
         sys.exit()
