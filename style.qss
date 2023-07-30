@@ -12,6 +12,16 @@ QLCDNumber#clock_qlcd {
   border: 1px;
 }
 
+QLabel#cpu_stats_label {
+  background-color: #b2c3e0;
+  border-radius: 3px;
+  font-family: Monaco;
+  font-size: 30pt;
+  color: white;
+  text-align: center;
+  padding-left: 10px;
+}
+
 QLabel {
   font-weight: bold;
   font-size: 18pt;

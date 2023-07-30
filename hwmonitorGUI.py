@@ -85,16 +85,19 @@ class MainWindow(QMainWindow):
         cpu_stats_grid.addWidget(self.clock_lcd, 0, 1, 1, 2)
         self.setup_clock_polling()
 
-        ### CPU utilization statistics - QLCDs
-        self.cpu_stats_qlcd = {}
-        for i, name in enumerate(["%", "Load 1 min", "#High"]):
-            qlcd = QLCDNumber(self)
-            qlcd.setDigitCount(2)
-            qlcd.setSegmentStyle(QLCDNumber.Flat)
-            cpu_stats_grid.addWidget(qlcd, 1, i)
-            self.cpu_stats_qlcd[name] = qlcd            
-
-        self.cpu_stats_qlcd["Load 1 min"].setDigitCount(3)
+        ### CPU utilization statistics labels
+        # The QLCD widget has limited support for non-digit characters.
+        # Use QLabels with custom styling.
+        self.cpu_stats_labels = {}
+        default_values = {
+            "%": "0%",
+            "1 min": "0.0<span style='font-size:20px'>(1 min)</span>",
+            "#": "#0"
+        }
+        for i, name in enumerate(default_values):
+            label = QLabel(default_values[name], self, objectName="cpu_stats_label")
+            cpu_stats_grid.addWidget(label, 1, i)
+            self.cpu_stats_labels[name] = label   
         
         core_utilization_button = QPushButton("cores ")
         core_utilization_button.setIcon(QIcon("resources/iconfinder_chip_square_6137627.png"))
@@ -268,17 +271,18 @@ class MainWindow(QMainWindow):
         self.core_window._update_cpu_cores(readings)
 
     def _update_cpu_stat_cards(self, readings):
-        """Update CPU statistics QLCDs"""
-        qlcd = self.cpu_stats_qlcd["%"]
+        """Update CPU statistics labels."""
+        label = self.cpu_stats_labels["%"]
         val = readings["cpu"]["utilization"]
-        qlcd.display(val)
-        utils.set_qlcd_color(qlcd)
+        label.setText(f"{val}%")
 
+        label = self.cpu_stats_labels["1 min"]
         val = readings["cpu"]["1_min_load_average"]
-        self.cpu_stats_qlcd["Load 1 min"].display(val)
+        label.setText("{:.1f}<span style='font-size:20px'>(1 min)</span>".format(val))
 
+        label = self.cpu_stats_labels["#"]
         val = readings["cpu"]["num_high_load_cores"]
-        self.cpu_stats_qlcd["#High"].display(val)
+        label.setText(f"#{val}")
 
     def _update_utilization_graphs(self, readings):
         """Update utilization time series graph. Remove oldest item and add new reading as latest."""
