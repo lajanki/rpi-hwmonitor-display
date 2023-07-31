@@ -21,3 +21,7 @@ gcloud pubsub subscriptions add-iam-policy-binding $SUBSCRIPTION_ID \
     --member "serviceAccount:hwmonitor@$PROJECT_ID.iam.gserviceaccount.com" \
     --role "roles/pubsub.subscriber" \
     --project $PROJECT_ID
+
+# Download a local json key
+gcloud iam service-accounts keys create ~/Downloads/hwmonitor.json \
+    --iam-account "hwmonitor@$PROJECT_ID.iam.gserviceaccount.com"

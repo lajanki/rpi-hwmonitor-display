@@ -14,7 +14,7 @@ System statistics monitored include:
 A hardware statistics poller running on the host system to monitor writes current system statistics to a Pub/Sub topic where the client pulls them and displays on a PyQt5 based GUI.
 
 ## Google Cloud Setup
-To setup you need:
+To setup the Google Cloud infrastructure you need:
  * a [Google Cloud project](https://cloud.google.com/) with Pub/Sub enabled.
  * [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) with `gcloud` command line tool.
 
@@ -26,8 +26,13 @@ Then create the a topic with a subscription and a service account using `setup_p
     source .env
     ./setup_pubsub.sh
     ```
+This will also download a json key for the service account to `~/Downloads`. This can be used as an authentication method from Raspberry Pi by setting
+the `GOOGLE_APPLICATION_CREDENTIALS` env variable (it can be added to your `.env` file).
+ * https://cloud.google.com/docs/authentication/application-default-credentials
 
-## Python setup - Ubuntu
+
+
+## Python setup - Linux
 Install dependencies with
 ```
 pip install -r requirements.txt
