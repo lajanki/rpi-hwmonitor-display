@@ -5,29 +5,37 @@ with open("./data/default_message.jsonc") as f:
     DEFAULT_MESSAGE = pyjson5.load(f)
 
 def interpolate(p1, p2, x):
-    """Compute value at x for the linear function
-    passing through p1 and p2.
+    """Compute y value at x for the linear function
+    passing through two points.
     f(x) = kx + b
+    Args:
+        p1 (tuple): a pair of (x, y) coordinates
+        p2 (tuple): a pair of (x, y) coordinates
+        x (int): the observed x-value
     """
     k = (p2[1] - p1[1])/(p2[0] - p1[0])
     b = p1[1] - k * p1[0] # b = f(x) - kx
     return int(k*x + b)
 
-def set_qlcd_color(qlcd):
-    """Set QLCD background color based on its value. Lighter value for low values and
-    darker for high values.
-    Uses HSL color codes with varying lightness value.
+def get_cpu_utilization_background_style(level):
+    """Create stylesheet for cpu utilization widget background color;
+    lighter value for low values and darker for high values.
+    Uses HSL color codes with varying saturation and lightness values.
+    Args:
+        level (int): current cpu utilization level from 0 to 100
+    Return:
+        a style sheet string to apply to the widget.
     """ 
-    value = qlcd.intValue()
 
-    # saturation: 20 ↦ 42 and 100 ↦ 100
-    saturation = interpolate((20, 42), (100, 100), value)
+    # saturation: increase to 100 from a fixed 'low' value. 20 ↦ 42 and 100 ↦ 100
+    saturation = interpolate((20, 42), (100, 100), level)
     
-    # lightness: 20 ↦ 79 and 100 ↦ 30
-    lightness = interpolate((20, 79), (100, 30), value)
+    # lightness: decrease to 30 from a bright value. 20 ↦ 79 and 100 ↦ 30
+    lightness = interpolate((20, 79), (100, 30), level)
 
-    if value <= 20:
+    # Fixed background color for low utilization values. 
+    if level <= 20:
         saturation = 42
         lightness = 79
-        
-    qlcd.setStyleSheet(f"QLCDNumber {{ background-color: hsl(218, {saturation}%, {lightness}%) }}")
+
+    return f"background-color: hsl(218, {saturation}%, {lightness}%)"

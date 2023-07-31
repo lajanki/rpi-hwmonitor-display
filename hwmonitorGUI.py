@@ -1,11 +1,17 @@
 import logging
 import time
-import os
 import json
 
 import numpy as np
 from PyQt5.QtGui import QFont, QIcon, QPixmap
-from PyQt5.QtCore import Qt, QObject, QThread, QTimer, pyqtSlot, pyqtSignal
+from PyQt5.QtCore import (
+    Qt,
+    QObject,
+    QThread,
+    QTimer,
+    pyqtSlot,
+    pyqtSignal
+)
 from PyQt5.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -96,6 +102,7 @@ class MainWindow(QMainWindow):
         }
         for i, name in enumerate(default_values):
             label = QLabel(default_values[name], self, objectName="cpu_stats_label")
+            label.setAlignment(Qt.AlignCenter)
             cpu_stats_grid.addWidget(label, 1, i)
             self.cpu_stats_labels[name] = label   
         
@@ -276,6 +283,11 @@ class MainWindow(QMainWindow):
         val = readings["cpu"]["utilization"]
         label.setText(f"{val}%")
 
+        # Adjust background color accordingly
+        style_sheet = utils.get_cpu_utilization_background_style(val)
+        label.setStyleSheet(style_sheet)
+
+
         label = self.cpu_stats_labels["1 min"]
         val = readings["cpu"]["1_min_load_average"]
         label.setText("{:.1f}<span style='font-size:20px'>(1 min)</span>".format(val))
@@ -351,7 +363,7 @@ class CPUCoreWindow(QWidget):
 
         self.layout.addWidget(close_button, 0, CPUCoreWindow.COLUMNS_PER_ROW-1)
         self.setLayout(self.layout)
-        self.resize(620, 420)
+        self.resize(600, 400)
         self.setWindowTitle("CPU core utilization")
 
     def _update_cpu_cores(self, readings):
@@ -378,8 +390,8 @@ class CPUCoreWindow(QWidget):
                 except IndexError:
                     val = 0
                 qlcd.display(val)
-                utils.set_qlcd_color(qlcd)
- 
+                style_sheet = utils.get_cpu_utilization_background_style(val)
+                qlcd.setStyleSheet(style_sheet) 
 
 class PubSubWorker(QObject):
     """Worker class for Pub/Sub thread."""
