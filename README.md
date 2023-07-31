@@ -5,9 +5,9 @@ System statistics monitored include:
  * CPU core utilization
  * CPU and GPU overall utilization and temperatures
  * GPU and total system RAM usage
+
+> **_NOTE_**: Only Nvidia GPUs are supported
  
-
-
 
 ![Main window](hwmonitor.png)
 
@@ -15,12 +15,13 @@ A hardware statistics poller running on the host system to monitor writes curren
 
 ## Google Cloud Setup
 To setup you need:
- * a [Google Cloud project](https://cloud.google.com/) with Pub/Sub enabled and a service account with editor access to it. 
+ * a [Google Cloud project](https://cloud.google.com/) with Pub/Sub enabled.
  * [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) with `gcloud` command line tool.
 
-Then,
- * fill `.template_env` with your project id, path to a downloaded service account json key file and names for your Pub/Sub topic and subscription. Rename the file to `.env`.
- * Source the file and setup your Pub/Sub topic with
+Then create the a topic with a subscription and a service account using `setup_pubsub.sh`:
+ * fill `.template_env` with your project id and names for your Pub/Sub topic and subscription.
+ * Rename the file to `.env`.
+ * Source the file and create the related resources with
     ```
     source .env
     ./setup_pubsub.sh
@@ -56,6 +57,6 @@ You can now run `poller.py` with the above command.
 ## Poller configuration and Pub/Sub pricing
 Polling frequency can be adjusted in `.env`. If not set, a default value of 5 will be used which means statistics are polled, and a message is published to the Pub/Sub topic every 5 seconds.
 
-Pub/Sub's [pricing](https://cloud.google.com/pubsub/pricing) is based on data sent with a minimum of 1000 bytes per publish. This minimum is likely greater than the actual data generated. Thus, publishing and receiving a message every 5 seconds (12 times per minute) transmit a total of `12 * 2kB = 24kB` per minute. Running both the poller and the monitor constantly would then transmit `24 * 60 * 24kB = 34560kB ~ 35MB` per day, roughly `1 GB / month`. 
+Pub/Sub's [pricing](https://cloud.google.com/pubsub/pricing) is based on data sent with a minimum of 1000 bytes per publish. Actual data published is around 600kB. Thus, publishing and receiving a message every 5 seconds (12 times per minute) transmit a total of `12 * 2kB = 24kB` per minute. Running both the poller and the monitor constantly would then transmit `24 * 60 * 24kB = 34560kB ~ 35MB` per day, roughly `1 GB / month`. 
 
 There is a free tier where the first 10 gigabytes of usage each month are free.
