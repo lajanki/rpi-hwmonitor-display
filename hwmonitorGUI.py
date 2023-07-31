@@ -1,12 +1,17 @@
 import logging
 import time
-import os
 import json
 
-from google.api_core.exceptions import DeadlineExceeded
 import numpy as np
 from PyQt5.QtGui import QFont, QIcon, QPixmap
-from PyQt5.QtCore import Qt, QObject, QThread, QTimer, pyqtSlot, pyqtSignal
+from PyQt5.QtCore import (
+    Qt,
+    QObject,
+    QThread,
+    QTimer,
+    pyqtSlot,
+    pyqtSignal
+)
 from PyQt5.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -26,14 +31,15 @@ from pubsub_utils.subscriber import Subscriber
 import utils
 
 
-logger = logging.getLogger()
+logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 
 
 class MainWindow(QMainWindow):
-    stop_worker = pyqtSignal()
+    """Main GUI window."""
 
     def __init__(self):
         super().__init__()
+        self.null_timer = QTimer(self)
         self.core_window = CPUCoreWindow()
         self.init_ui()
         self.setup_pubsub_pull()
@@ -85,16 +91,20 @@ class MainWindow(QMainWindow):
         cpu_stats_grid.addWidget(self.clock_lcd, 0, 1, 1, 2)
         self.setup_clock_polling()
 
-        ### CPU utilization statistics - QLCDs
-        self.cpu_stats_qlcd = {}
-        for i, name in enumerate(["%", "Load 1 min", "#High"]):
-            qlcd = QLCDNumber(self)
-            qlcd.setDigitCount(2)
-            qlcd.setSegmentStyle(QLCDNumber.Flat)
-            cpu_stats_grid.addWidget(qlcd, 1, i)
-            self.cpu_stats_qlcd[name] = qlcd            
-
-        self.cpu_stats_qlcd["Load 1 min"].setDigitCount(3)
+        ### CPU utilization statistics labels
+        # The QLCD widget has limited support for non-digit characters.
+        # Use QLabels with custom styling.
+        self.cpu_stats_labels = {}
+        default_values = {
+            "%": "0%",
+            "1 min": "0.0<span style='font-size:20px'>(1 min)</span>",
+            "#": "#0"
+        }
+        for i, name in enumerate(default_values):
+            label = QLabel(default_values[name], self, objectName="cpu_stats_label")
+            label.setAlignment(Qt.AlignCenter)
+            cpu_stats_grid.addWidget(label, 1, i)
+            self.cpu_stats_labels[name] = label   
         
         core_utilization_button = QPushButton("cores ")
         core_utilization_button.setIcon(QIcon("resources/iconfinder_chip_square_6137627.png"))
@@ -222,11 +232,12 @@ class MainWindow(QMainWindow):
         self.worker.moveToThread(self.thread)
 
         # Connect signals and slots
-        self.stop_worker.connect(self.worker.stop)
         self.thread.started.connect(self.worker.run)
         self.thread.finished.connect(self.thread.deleteLater)
         self.worker.update.connect(self.update_readings)
 
+        # Setup timer for emptying current readings
+        #self.null_timer.timeout.connect(self.empty_readings)
         self.thread.start()
 
     def setup_clock_polling(self):
@@ -245,9 +256,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def stop_thread_and_exit(self):
         """Stop any running SubscriberThread and exit the application."""
-        self.stop_worker.emit()
         self.thread.exit()
-        self.thread.wait()
         self.core_window.close()
         self.close()
 
@@ -261,6 +270,7 @@ class MainWindow(QMainWindow):
         """slot for SubscriberThread: receives latest hardware readings
         and updates the GUI.
         """
+        #self.null_timer.start((UPDATE_INTERVAL+1) * 1000)
         self._update_cpu_stat_cards(readings)
         self._update_utilization_graphs(readings)
         self._update_ram(readings)
@@ -268,17 +278,23 @@ class MainWindow(QMainWindow):
         self.core_window._update_cpu_cores(readings)
 
     def _update_cpu_stat_cards(self, readings):
-        """Update CPU statistics QLCDs"""
-        qlcd = self.cpu_stats_qlcd["%"]
+        """Update CPU statistics labels."""
+        label = self.cpu_stats_labels["%"]
         val = readings["cpu"]["utilization"]
-        qlcd.display(val)
-        utils.set_qlcd_color(qlcd)
+        label.setText(f"{val}%")
 
+        # Adjust background color accordingly
+        style_sheet = utils.get_cpu_utilization_background_style(val)
+        label.setStyleSheet(style_sheet)
+
+
+        label = self.cpu_stats_labels["1 min"]
         val = readings["cpu"]["1_min_load_average"]
-        self.cpu_stats_qlcd["Load 1 min"].display(val)
+        label.setText("{:.1f}<span style='font-size:20px'>(1 min)</span>".format(val))
 
+        label = self.cpu_stats_labels["#"]
         val = readings["cpu"]["num_high_load_cores"]
-        self.cpu_stats_qlcd["#High"].display(val)
+        label.setText(f"#{val}")
 
     def _update_utilization_graphs(self, readings):
         """Update utilization time series graph. Remove oldest item and add new reading as latest."""
@@ -316,87 +332,85 @@ class MainWindow(QMainWindow):
         self.gpu_temperature.setText(cpu_temperature)
         self.cpu_temperature.setText(gpu_temperature)
 
+    def empty_readings(self):
+        """Emit and empty readings response to empty UI elements."""
+        logging.info("Nothing received from topic for a while, resetting charts.")
+        readings = utils.DEFAULT_MESSAGE
+        readings["timestamp"] = time.time()
+        self.update_readings(readings)
 
 class CPUCoreWindow(QWidget):
     """Window for cpu core utilizations."""
+    COLUMNS_PER_ROW = 5
+
     def __init__(self):
         super().__init__()
-        layout = QGridLayout()
+        self.layout = QGridLayout()
+        self.qlcd_widgets = []
 
-        ### CPU core utilizations
-        # QLCD widget per core in rows of 4 widgets.
-        QLCD_PER_ROW = 4
-        self.core_qlcd = []
-        for row in range(os.cpu_count()//QLCD_PER_ROW):
-            for col in range(QLCD_PER_ROW):
-                qlcd = QLCDNumber(self)
-                qlcd.setDigitCount(2)
-                qlcd.display(0)
-                qlcd.setSegmentStyle(QLCDNumber.Flat)
-                layout.addWidget(qlcd, row+1, col)
-                self.core_qlcd.append(qlcd)
+        # Button for closing the window, top right.
+        close_button = QPushButton("Close ")
+        close_button.setIcon(QIcon("resources/iconfinder_Close_1891023.png"))
+        close_button.setLayoutDirection(Qt.RightToLeft)
+        close_button.clicked.connect(lambda: self.close())
+        close_button.setSizePolicy(
+            QSizePolicy.Preferred,
+            QSizePolicy.Preferred
+        )
 
-        # self.label = QLabel("Another Window")
-        # layout.addWidget(self.label)
-        self.setLayout(layout)
-        self.resize(620, 420)
+        self.empty_label = QLabel("Waiting for data...", self)
+        self.layout.addWidget(self.empty_label, 1, CPUCoreWindow.COLUMNS_PER_ROW-1)
+
+        self.layout.addWidget(close_button, 0, CPUCoreWindow.COLUMNS_PER_ROW-1)
+        self.setLayout(self.layout)
+        self.resize(600, 400)
         self.setWindowTitle("CPU core utilization")
 
     def _update_cpu_cores(self, readings):
-        """Update CPU core QLCDs."""
-        for i, qlcd in enumerate(self.core_qlcd):
-            try:
-                val = readings["cpu"]["cores"]["utilization"][i]
-            except IndexError:
-                val = 0
-            qlcd.display(val)
-            utils.set_qlcd_color(qlcd)
-
+        """Update Core utilization values. The number of cores is not known
+        until the first response is received from the poller.
+        Create a QLCD widget for each core if not already created
+        and update the values.
+        """
+        # Remove the dummy label
+        self.empty_label.setParent(None)
+        if not self.qlcd_widgets:
+            NUM_CORES = len(readings["cpu"]["cores"]["utilization"])
+            for row in range(NUM_CORES//CPUCoreWindow.COLUMNS_PER_ROW):
+                for col in range(CPUCoreWindow.COLUMNS_PER_ROW):
+                    qlcd = QLCDNumber(self)
+                    qlcd.setDigitCount(2)
+                    qlcd.setSegmentStyle(QLCDNumber.Flat)
+                    self.layout.addWidget(qlcd, row+2, col)
+                    self.qlcd_widgets.append(qlcd)
+        else:
+            for i, qlcd in enumerate(self.qlcd_widgets):
+                try:
+                    val = readings["cpu"]["cores"]["utilization"][i]
+                except IndexError:
+                    val = 0
+                qlcd.display(val)
+                style_sheet = utils.get_cpu_utilization_background_style(val)
+                qlcd.setStyleSheet(style_sheet) 
 
 class PubSubWorker(QObject):
+    """Worker class for Pub/Sub thread."""
     update = pyqtSignal(dict)
 
     def __init__(self):
         super().__init__()
-        self.pull_timer = QTimer(self)
+        self.subscriber = Subscriber()
+
+    def process_response(self, message):
+        """Callback for streaming pull: emit message back to the main thread."""
+        readings = json.loads(message.data.decode("utf-8"))
+        readings["timestamp"] = message.publish_time.timestamp()
+        self.update.emit(readings)
+        message.ack()
 
     def run(self):
-        """Setup a Pub/Sub message pull every UPDATE_INTERVAL seconds."""
-        empty_pull_counter = 0
-        subscriber = Subscriber()
-
-        def pull():
-            nonlocal empty_pull_counter
-            try:
-                message = subscriber.pull_message()
-                readings = json.loads(message.data.decode("utf-8"))
-                readings["timestamp"] = message.publish_time.timestamp()
-                self.update.emit(readings)
-                empty_pull_counter = 0
-            except DeadlineExceeded:
-                # If this is the 2nd consecutive empty pull, reset all widgets
-                if empty_pull_counter >= 1:
-                    logger.info("Nothing received from topic for a while, resetting charts.")
-
-                    # Emit an empty response with current timestamp to avoid
-                    # discarding it as too old.
-                    readings = utils.get_default_message()
-                    readings["timestamp"] = time.time()
-                    self.update.emit(readings)
-
-                    empty_pull_counter += 1
-                else:
-                    logger.debug("Nothing received from topic.")
-                    empty_pull_counter += 1
-
-        subscriber.seek_to_time(int(time.time()))
-        pull()
-        self.pull_timer.timeout.connect(pull)
-        self.pull_timer.start(UPDATE_INTERVAL * 1000)
-
-    @pyqtSlot()
-    def stop(self):
-        self.pull_timer.stop()
+        self.subscriber.seek_to_time(int(time.time()))
+        self.subscriber.setup_streaming_pull(self.process_response)
 
 
 class PercentAxisItem(pg.AxisItem):

@@ -1,4 +1,3 @@
-import os
 import json
 import logging
 import time
@@ -8,6 +7,7 @@ from google.cloud import pubsub_v1
 
 import pubsub_utils
 from pubsub_utils import hw_stats
+import utils
 
 
 publisher = pubsub_v1.PublisherClient()
@@ -20,28 +20,12 @@ def get_stats():
     """Gather various CPU, GPU and RAM statistics to a dict to be sent
     as pubsub message.
     """
-    stats = {}
-
-    if os.name == "nt":
-        import pythoncom
-        pythoncom.CoInitialize()
-
-        cpu_gpu = hw_stats._get_cpu_and_gpu_info_wmi()
-        stats.update({
-            "cpu": cpu_gpu["cpu"],
-            "gpu": cpu_gpu["gpu"],
-            "ram": hw_stats.get_ram_info()
-        })
-
-    else:
-        stats.update({
-            "cpu": hw_stats._get_cpu_info_psutil(),
-            "ram": hw_stats.get_ram_info(),
-            "gpu": hw_stats.get_gpu_info()
-        })
+    return {
+        "cpu": hw_stats.get_cpu_info(),
+        "ram": hw_stats.get_ram_info(),
+        "gpu": hw_stats.get_gpu_info()
+    }
         
-    return stats
-
 def publish_stats():
     """Continuously fetch current statistics and publish as message.
     Publish a new message every UPDATE_INTERVAL seconds.
@@ -58,7 +42,7 @@ def publish_stats():
     try:
         while True:
             data = json.dumps(get_stats()).encode("utf-8")
-            future = publisher.publish(topic_path, data)
+            publisher.publish(topic_path, data)
 
             bytes_generated += len(data)
             bytes_processed += MIN_PROCESS_SIZE  
@@ -71,6 +55,17 @@ def publish_stats():
             # Print statistics overwriting previous line
             print(f"Messages published: {messages_published} ### MB published/generated: {megabytes_published}/{megabytes_generated}", end="\r")
     except KeyboardInterrupt:
+        # Send an empty message to clear (static) visuals.
+        # Note: the utilization graph history will remain visible.
         print()
+        logging.info("Stopping publish")
+        # Wait a while to give Pub/Sub time to process recent messages
+        time.sleep(pubsub_utils.UPDATE_INTERVAL)
+
+        logging.info("Sending empty message...")
+        data = json.dumps(utils.DEFAULT_MESSAGE).encode("utf-8")
+        future = publisher.publish(topic_path, data)
+        future.result()
+
         logging.info("Exiting")
         sys.exit()
