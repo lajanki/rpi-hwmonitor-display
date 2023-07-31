@@ -1,4 +1,3 @@
-import os
 import json
 import logging
 import time
@@ -56,9 +55,11 @@ def publish_stats():
             # Print statistics overwriting previous line
             print(f"Messages published: {messages_published} ### MB published/generated: {megabytes_published}/{megabytes_generated}", end="\r")
     except KeyboardInterrupt:
-        # Send an empty message to clear visuals
+        # Send an empty message to clear (static) visuals.
+        # Note: the utilization graph history will remain visible.
         print()
         logging.info("Stopping publish")
+        # Wait a while to give Pub/Sub time to process recent messages
         time.sleep(pubsub_utils.UPDATE_INTERVAL)
 
         logging.info("Sending empty message...")
