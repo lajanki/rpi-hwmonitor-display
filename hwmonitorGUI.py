@@ -39,7 +39,6 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.null_timer = QTimer(self)
         self.core_window = CPUCoreWindow()
         self.init_ui()
         self.setup_pubsub_pull()
@@ -237,7 +236,6 @@ class MainWindow(QMainWindow):
         self.worker.update.connect(self.update_readings)
 
         # Setup timer for emptying current readings
-        #self.null_timer.timeout.connect(self.empty_readings)
         self.thread.start()
 
     def setup_clock_polling(self):
@@ -270,7 +268,6 @@ class MainWindow(QMainWindow):
         """slot for SubscriberThread: receives latest hardware readings
         and updates the GUI.
         """
-        #self.null_timer.start((UPDATE_INTERVAL+1) * 1000)
         self._update_cpu_stat_cards(readings)
         self._update_utilization_graphs(readings)
         self._update_ram(readings)
@@ -329,8 +326,8 @@ class MainWindow(QMainWindow):
         """Update temperature QLabels."""
         cpu_temperature = f"{readings['cpu']['temperature']}°C"
         gpu_temperature = f"{readings['gpu']['temperature']}°C"
-        self.gpu_temperature.setText(cpu_temperature)
-        self.cpu_temperature.setText(gpu_temperature)
+        self.gpu_temperature.setText(gpu_temperature)
+        self.cpu_temperature.setText(cpu_temperature)
 
     def empty_readings(self):
         """Emit and empty readings response to empty UI elements."""
