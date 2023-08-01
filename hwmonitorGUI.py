@@ -113,7 +113,7 @@ class MainWindow(QMainWindow):
             QSizePolicy.Preferred,
             QSizePolicy.Preferred
         )
-        core_utilization_button.clicked.connect(self.show_core_window)
+        core_utilization_button.clicked.connect(self.core_window.show)
 
 
         ### CPU & GPU utilization time series grid
@@ -258,11 +258,6 @@ class MainWindow(QMainWindow):
         self.core_window.close()
         self.close()
 
-    @pyqtSlot()
-    def show_core_window(self):
-        """Show CPU core utilization window."""
-        self.core_window.show()
-
     @pyqtSlot(dict)
     def update_readings(self, readings):
         """slot for SubscriberThread: receives latest hardware readings
@@ -349,7 +344,7 @@ class CPUCoreWindow(QWidget):
         close_button = QPushButton("Close ")
         close_button.setIcon(QIcon("resources/iconfinder_Close_1891023.png"))
         close_button.setLayoutDirection(Qt.RightToLeft)
-        close_button.clicked.connect(lambda: self.close())
+        close_button.clicked.connect(self.close)
         close_button.setSizePolicy(
             QSizePolicy.Preferred,
             QSizePolicy.Preferred
