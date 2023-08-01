@@ -14,6 +14,8 @@ certifi==2023.7.22
     # via requests
 charset-normalizer==3.2.0
     # via requests
+contextlib2==21.6.0
+    # via schema
 decorator==5.1.1
     # via ipython
 exceptiongroup==1.1.2
@@ -108,7 +110,10 @@ pytest==7.4.0
     # via
     #   -r requirements.in
     #   pytest-qt
+    #   pytest-schema
 pytest-qt==4.2.0
+    # via -r requirements.in
+pytest-schema==0.1.1
     # via -r requirements.in
 python-dotenv==1.0.0
     # via -r requirements.in
@@ -116,6 +121,8 @@ requests==2.31.0
     # via google-api-core
 rsa==4.9
     # via google-auth
+schema==0.7.5
+    # via pytest-schema
 six==1.16.0
     # via
     #   asttokens
