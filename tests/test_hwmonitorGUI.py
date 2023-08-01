@@ -1,5 +1,3 @@
-import os
-import pytest
 import time
 from unittest.mock import patch, Mock
 
@@ -59,7 +57,10 @@ def test_reading_widget_update(qtbot):
     assert main_window.gpu_temperature.text() == "70°C"
 
     # Core window
-    #main_window.core_window._update_cpu_cores(mock_message)
+    # On 1st call a minimum of 5 empty QLCDNumber elements are initialized
+    assert main_window.core_window.empty_label.parent() is None
+    assert len(main_window.core_window.qlcd_widgets) == 5
 
-    #assert len(main_window.core_window.qlcd_widgets) == 4
-    #assert [ qlcd.value() for qlcd in core_window.qlcd_widgets ] == ["7", "0", "0", "1"]
+    # On subsequent calls values should be set
+    main_window.update_readings(mock_message)
+    assert [ qlcd.intValue() for qlcd in main_window.core_window.qlcd_widgets ] == [7, 0, 0, 1, 0]

@@ -373,7 +373,9 @@ class CPUCoreWindow(QWidget):
         self.empty_label.setParent(None)
         if not self.qlcd_widgets:
             NUM_CORES = len(readings["cpu"]["cores"]["utilization"])
-            for row in range(NUM_CORES//CPUCoreWindow.COLUMNS_PER_ROW):
+            # add at least 1 row if NUM_CORES < COLUMNS_PER_ROW
+            NUM_ROWS = max(1, NUM_CORES//CPUCoreWindow.COLUMNS_PER_ROW)
+            for row in range(NUM_ROWS):
                 for col in range(CPUCoreWindow.COLUMNS_PER_ROW):
                     qlcd = QLCDNumber(self)
                     qlcd.setDigitCount(2)
