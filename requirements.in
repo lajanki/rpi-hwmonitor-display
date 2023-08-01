@@ -5,4 +5,6 @@ psutil
 pyjson5
 PyQt5
 pyqtgraph
+pytest
+pytest-qt
 python-dotenv
