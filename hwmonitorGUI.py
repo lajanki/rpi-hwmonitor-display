@@ -39,7 +39,6 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.null_timer = QTimer(self)
         self.core_window = CPUCoreWindow()
         self.init_ui()
         self.setup_pubsub_pull()
@@ -114,7 +113,7 @@ class MainWindow(QMainWindow):
             QSizePolicy.Preferred,
             QSizePolicy.Preferred
         )
-        core_utilization_button.clicked.connect(self.show_core_window)
+        core_utilization_button.clicked.connect(self.core_window.show)
 
 
         ### CPU & GPU utilization time series grid
@@ -237,7 +236,6 @@ class MainWindow(QMainWindow):
         self.worker.update.connect(self.update_readings)
 
         # Setup timer for emptying current readings
-        #self.null_timer.timeout.connect(self.empty_readings)
         self.thread.start()
 
     def setup_clock_polling(self):
@@ -260,17 +258,11 @@ class MainWindow(QMainWindow):
         self.core_window.close()
         self.close()
 
-    @pyqtSlot()
-    def show_core_window(self):
-        """Show CPU core utilization window."""
-        self.core_window.show()
-
     @pyqtSlot(dict)
     def update_readings(self, readings):
         """slot for SubscriberThread: receives latest hardware readings
         and updates the GUI.
         """
-        #self.null_timer.start((UPDATE_INTERVAL+1) * 1000)
         self._update_cpu_stat_cards(readings)
         self._update_utilization_graphs(readings)
         self._update_ram(readings)
@@ -329,8 +321,8 @@ class MainWindow(QMainWindow):
         """Update temperature QLabels."""
         cpu_temperature = f"{readings['cpu']['temperature']}°C"
         gpu_temperature = f"{readings['gpu']['temperature']}°C"
-        self.gpu_temperature.setText(cpu_temperature)
-        self.cpu_temperature.setText(gpu_temperature)
+        self.gpu_temperature.setText(gpu_temperature)
+        self.cpu_temperature.setText(cpu_temperature)
 
     def empty_readings(self):
         """Emit and empty readings response to empty UI elements."""
@@ -352,7 +344,7 @@ class CPUCoreWindow(QWidget):
         close_button = QPushButton("Close ")
         close_button.setIcon(QIcon("resources/iconfinder_Close_1891023.png"))
         close_button.setLayoutDirection(Qt.RightToLeft)
-        close_button.clicked.connect(lambda: self.close())
+        close_button.clicked.connect(self.close)
         close_button.setSizePolicy(
             QSizePolicy.Preferred,
             QSizePolicy.Preferred
@@ -376,7 +368,9 @@ class CPUCoreWindow(QWidget):
         self.empty_label.setParent(None)
         if not self.qlcd_widgets:
             NUM_CORES = len(readings["cpu"]["cores"]["utilization"])
-            for row in range(NUM_CORES//CPUCoreWindow.COLUMNS_PER_ROW):
+            # add at least 1 row if NUM_CORES < COLUMNS_PER_ROW
+            NUM_ROWS = max(1, NUM_CORES//CPUCoreWindow.COLUMNS_PER_ROW)
+            for row in range(NUM_ROWS):
                 for col in range(CPUCoreWindow.COLUMNS_PER_ROW):
                     qlcd = QLCDNumber(self)
                     qlcd.setDigitCount(2)

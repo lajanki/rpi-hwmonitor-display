@@ -65,3 +65,9 @@ Polling frequency can be adjusted in `.env`. If not set, a default value of 5 wi
 Pub/Sub's [pricing](https://cloud.google.com/pubsub/pricing) is based on data sent with a minimum of 1000 bytes per publish. Actual data published is around 600kB. Thus, publishing and receiving a message every 5 seconds (12 times per minute) transmit a total of `12 * 2kB = 24kB` per minute. Running both the poller and the monitor constantly would then transmit `24 * 60 * 24kB = 34560kB ~ 35MB` per day, roughly `1 GB / month`. 
 
 There is a free tier where the first 10 gigabytes of usage each month are free.
+
+## Unit tests
+Unit tests can be run with:
+```
+pytest
+```
