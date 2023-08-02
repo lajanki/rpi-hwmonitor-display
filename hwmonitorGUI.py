@@ -297,7 +297,7 @@ class MainWindow(QMainWindow):
             # Ignore this reading if older than the latest data point in graph.
             # (Pub/Sub does not guarantee ordering by default. Fix: enable ordering?)
             if readings["timestamp"] <= old_data[0][-1]:
-                logging.warn("Discarding out-of-order item. Age: %ds", time.time() - readings["timestamp"])
+                logging.warning("Discarding out-of-order item. Age: %ds", time.time() - readings["timestamp"])
                 return
             
             x = np.append(old_data[0][1:], readings["timestamp"])
