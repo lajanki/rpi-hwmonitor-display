@@ -1,8 +1,14 @@
 # rpi-hwmonitor-display
 A system hardware status monitor displaying host system's CPU, RAM and GPU statistics on a Raspberry Pi client. Host can be a Linux or a Windows system. Message delivery between host and client is based on Google Pub/Sub.
 
+[![Unit tests](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml/badge.svg?branch=main)](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml)
+
 System statistics monitored include:
- * CPU core utilization
+ * CPU utilization
+   * System-wide percentage of CPU in use
+   * 1 minute load average
+   * Number of cores with utilization > 50%
+   * Individual cpu core utilization
  * CPU and GPU overall utilization and temperatures
  * GPU and total system RAM usage
 
@@ -11,7 +17,6 @@ System statistics monitored include:
 
 ![Main window](hwmonitor.png)
 
-A hardware statistics poller running on the host system to monitor writes current system statistics to a Pub/Sub topic where the client pulls them and displays on a PyQt5 based GUI.
 
 ## Google Cloud Setup
 To setup the Google Cloud infrastructure you need:
