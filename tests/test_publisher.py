@@ -1,10 +1,8 @@
-import os
 import pytest
 from unittest.mock import patch, Mock
 
 from pytest_schema import schema
 
-from pubsub_utils import hw_stats
 
 # Mock Google Cloud client creations before importing the main library
 with patch("google.cloud.pubsub_v1.PublisherClient"):
