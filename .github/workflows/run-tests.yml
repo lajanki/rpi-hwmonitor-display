@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,7 +23,7 @@ jobs:
     # Dependencies for running tests without a display (Xvfb and pytest-xvfb plugin)
     - name: Install dependencies
       run: |
-        apt update && sudo apt install -y \
+        sudo apt update && sudo apt install -y \
           xvfb \
           libxkbcommon-x11-0 \
           pyqt5-dev-tools
