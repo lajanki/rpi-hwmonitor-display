@@ -4,7 +4,6 @@ from unittest.mock import patch, Mock
 import hwmonitorGUI
 
 
-
 mock_message = {
     "cpu": {
         "utilization": 10,
@@ -32,10 +31,11 @@ mock_message = {
     "timestamp": time.time()
 }
 
-
 def test_reading_widget_update(qtbot):
     """Does receiving new readings update the corresponding GUI elements?"""
-    main_window = hwmonitorGUI.MainWindow()
+    with patch("hwmonitorGUI.PubSubWorker"):
+        main_window = hwmonitorGUI.MainWindow()
+        
     qtbot.addWidget(main_window)
 
     main_window.update_readings(mock_message)

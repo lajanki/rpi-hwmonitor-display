@@ -80,7 +80,7 @@ def _get_cpu_temps():
     """
     if os.name == "nt":
         import wmi
-        w = wmi.WMI(namespace="root\LibreHardwareMonitor")
+        w = wmi.WMI(namespace=r"root\LibreHardwareMonitor")
         values = [CoreTemp(sensor.Name, sensor.value) for sensor in w.Sensor()
                   if sensor.SensorType == "Temperature"
                     and sensor.Name.startswith(("CPU Core #", "CPU Package"))

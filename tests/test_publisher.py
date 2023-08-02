@@ -7,12 +7,8 @@ from pytest_schema import schema
 from pubsub_utils import hw_stats
 
 # Mock Google Cloud client creations before importing the main library
-with (
-    patch("google.cloud.pubsub_v1.PublisherClient")
-):
+with patch("google.cloud.pubsub_v1.PublisherClient"):
     from pubsub_utils import publisher
-
-
 
 
 @patch("pubsub_utils.hw_stats.pynvml")
