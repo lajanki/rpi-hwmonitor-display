@@ -4,13 +4,14 @@ A system hardware status monitor displaying host system's CPU, RAM and GPU stati
 [![Unit tests](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml/badge.svg?branch=main)](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml)
 
 System statistics monitored include:
- * :computer: CPU utilization
-   * System-wide percentage of CPU in use
+ * Current CPU utilization :computer:
+   * Overall CPU utilization percentage
    * 1 minute load average
-   * Number of cores with utilization > 50%
-   * Individual cpu core utilization
- * :thermometer: CPU and GPU overall utilization and temperatures
- * :bar_chart: GPU and total system RAM usage
+   * Number of cores with high utilization
+   * Individual CPU core utilization
+ * CPU and GPU utilization graphs :chart_with_upwards_trend:
+ * CPU and GPU temperatures :thermometer:
+ * GPU and total system RAM usage :bar_chart:
 
 > [!NOTE]  
 > Only Nvidia GPUs are supported
