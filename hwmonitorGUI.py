@@ -26,8 +26,8 @@ from PyQt5.QtWidgets import (
 )
 import pyqtgraph as pg
 
-from pubsub_utils import UPDATE_INTERVAL
-from pubsub_utils.subscriber import Subscriber
+from transport import UPDATE_INTERVAL
+from message_workers import PubSubWorker
 import utils
 
 
@@ -387,27 +387,8 @@ class CPUCoreWindow(QWidget):
                 style_sheet = utils.get_cpu_utilization_background_style(val)
                 qlcd.setStyleSheet(style_sheet) 
 
-class PubSubWorker(QObject):
-    """Worker class for Pub/Sub thread."""
-    update = pyqtSignal(dict)
-
-    def __init__(self):
-        super().__init__()
-        self.subscriber = Subscriber()
-
-    def process_response(self, message):
-        """Callback for streaming pull: emit message back to the main thread."""
-        readings = json.loads(message.data.decode("utf-8"))
-        readings["timestamp"] = message.publish_time.timestamp()
-        self.update.emit(readings)
-        message.ack()
-
-    def run(self):
-        self.subscriber.seek_to_time(int(time.time()))
-        self.subscriber.setup_streaming_pull(self.process_response)
-
-
 class PercentAxisItem(pg.AxisItem):
+    """Custom pyqtgraph AxisItem class with customized tick strings."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

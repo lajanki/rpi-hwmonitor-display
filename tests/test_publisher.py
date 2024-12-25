@@ -3,16 +3,13 @@ from unittest.mock import patch, Mock
 
 from pytest_schema import schema
 
-
-# Mock Google Cloud client creations before importing the main library
-with patch("google.cloud.pubsub_v1.PublisherClient"):
-    from pubsub_utils import publisher
+from transport import hw_stats
 
 
 @patch("psutil.sensors_temperatures")
-@patch("pubsub_utils.hw_stats.pynvml")
+@patch("transport.hw_stats.pynvml")
 def test_get_stats_schema(mock_pynvml, mock_sensors_temperatures):
-    """Test schema generated bu the main getter is expected."""
+    """Validate the schema of the main hardware statistics extract function."""
     # Mock pynvml calls
     mock_pynvml.nvmlDeviceGetMemoryInfo.return_value = Mock(used=2*10**6, total=3*10**6)
     mock_pynvml.nvmlDeviceGetUtilizationRates.return_value = Mock(gpu=52)
@@ -23,7 +20,7 @@ def test_get_stats_schema(mock_pynvml, mock_sensors_temperatures):
         "coretemp": [Mock(label="#1", current=26), Mock(label="#2", current=28), Mock(label="#3", current=28)]
     }
 
-    stats = publisher.get_stats()
+    stats = hw_stats.get_stats()
     expected_schema = schema(
         {
             "cpu": {

@@ -12,6 +12,18 @@ logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 
 CoreTemp = namedtuple("CoreTemp", ["label", "value"])
 
+
+
+def get_stats():
+    """Gather various CPU, GPU and RAM statistics to a dictionary as message
+    to be published.
+    """
+    return {
+        "cpu": get_cpu_info(),
+        "ram": get_ram_info(),
+        "gpu": get_gpu_info()
+    }
+
 def get_ram_info():
     """System memory usage in MB via psutil."""
     mem = psutil.virtual_memory()
@@ -31,7 +43,7 @@ def get_gpu_info():
     """
     try:
         pynvml.nvmlInit()
-        handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # Assume GPU is at index 0
+        handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # get GPU at inex 0
         mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
         util_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
         temp_info = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)

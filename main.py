@@ -25,14 +25,15 @@ if __name__ == "__main__":
     with open("style.qss") as f:
         hw_monitor.setStyleSheet(f.read())
 
-    hw_monitor.show()
-
     if args.debug:
         logging.getLogger().setLevel("DEBUG")
 
     if args.fullscreen:
         hw_monitor.showFullScreen()
         hw_monitor.setCursor(Qt.BlankCursor)
+
+    hw_monitor.show()
+
 
     res = app.exec_()
     sys.exit(res)

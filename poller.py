@@ -1,5 +1,6 @@
-from pubsub_utils import publisher
+from transport import pubsub_publisher
 
 
 if __name__ == "__main__":
-    publisher.publish_stats()
+    publisher = pubsub_publisher.PubSubPublisher()
+    publisher.publish()

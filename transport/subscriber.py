@@ -4,7 +4,7 @@ from concurrent.futures import TimeoutError
 
 from google.cloud import pubsub_v1
 
-import pubsub_utils
+import transport
 
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
@@ -14,11 +14,12 @@ class Subscriber:
 
     def __init__(self):
         self.client = pubsub_v1.SubscriberClient()
-        self.subscription_path = self.client.subscription_path(pubsub_utils.PROJECT_ID, pubsub_utils.SUBSCRIPTION_ID)
+        self.subscription_path = self.client.subscription_path(transport.PROJECT_ID, transport.SUBSCRIPTION_ID)
 
     def setup_streaming_pull(self, callback):
-        """Stream pull messages from the topic. Keep listening for messages indefinitely.
-        https://cloud.google.com/pubsub/docs/pull#python
+        """Continously pull messages from the topic using streming pull.
+        This will keep listening for messages indefinitely.
+        https://cloud.google.com/pubsub/docs/pull#streamingpull_api
         Args:
             callback (callable): the callback to process the messages
         """
