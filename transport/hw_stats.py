@@ -8,7 +8,7 @@ import pynvml
 import utils
 
 
-logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
+logger = logging.getLogger()
 
 CoreTemp = namedtuple("CoreTemp", ["label", "value"])
 
@@ -17,7 +17,7 @@ NVML_AVAILABLE = True
 try:
     pynvml.nvmlInit()
 except pynvml.NVMLError_LibraryNotFound:
-    logging.warning("NVIDIA Management Library (NVML) not detected, Disabling GPU tracking.")
+    logger.warning("NVIDIA Management Library (NVML) not detected, Disabling GPU tracking.")
     NVML_AVAILABLE = False
 
 
@@ -69,8 +69,8 @@ def get_cpu_info():
     stats = {
         "cores": {
             "utilization": list(map(int, psutil.cpu_percent(percpu=True))),
-            "frequency": [int(item.current) for item in psutil.cpu_freq(percpu=True)],  # The percpu option is only supported in Linux,
-                                                                                        # on Windows returns the same as when set to False
+            "frequency": [int(item.current) for item in psutil.cpu_freq(percpu=True)],  # The percpu attribute is only supported in Linux,
+                                                                                        # on Windows this has no effect.
             "temperature": [int(t.value) for t in _get_cpu_temps() if "Core" in t.label]
         },
         "utilization": int(psutil.cpu_percent()),

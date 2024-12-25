@@ -13,7 +13,7 @@ import utils
 
 
 
-logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
+logger = logging.getLogger()
 
 
 class PubSubPublisher(BasePublisher):
@@ -33,8 +33,8 @@ class PubSubPublisher(BasePublisher):
         # https://cloud.google.com/pubsub/pricing#:~:text=A%20minimum%20of%201000%20bytes,assessed%20regardless%20of%20message%20size
         MIN_PROCESS_SIZE = 1000
 
-        logging.info("Polling started...")
-        logging.info("Ctrl-C to exit")
+        logger.info("Polling started...")
+        logger.info("Ctrl-C to exit")
         try:
             while True:
                 data = json.dumps(hw_stats.get_stats()).encode("utf-8")
@@ -54,14 +54,14 @@ class PubSubPublisher(BasePublisher):
             # Send an empty message to clear (static) visuals.
             # Note: the utilization graph history will remain visible.
             print()
-            logging.info("Stopping publish")
+            logger.info("Stopping publish")
             # Wait a while to give Pub/Sub time to process recent messages
             time.sleep(transport.UPDATE_INTERVAL)
 
-            logging.info("Sending empty message...")
+            logger.info("Sending empty message...")
             data = json.dumps(utils.DEFAULT_MESSAGE).encode("utf-8")
             future = self.client.publish(self.topic_path, data)
             future.result()
 
-            logging.info("Exiting")
+            logger.info("Exiting")
             sys.exit()

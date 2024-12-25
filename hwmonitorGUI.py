@@ -31,8 +31,8 @@ from message_workers import PubSubWorker
 import utils
 
 
-logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 
+logger = logging.getLogger()
 
 class MainWindow(QMainWindow):
     """Main GUI window."""
@@ -297,7 +297,7 @@ class MainWindow(QMainWindow):
             # Ignore this reading if older than the latest data point in graph.
             # (Pub/Sub does not guarantee ordering by default. Fix: enable ordering?)
             if readings["timestamp"] <= old_data[0][-1]:
-                logging.warning("Discarding out-of-order item. Age: %ds", time.time() - readings["timestamp"])
+                logger.warning("Discarding out-of-order item. Age: %ds", time.time() - readings["timestamp"])
                 return
             
             x = np.append(old_data[0][1:], readings["timestamp"])
@@ -326,7 +326,7 @@ class MainWindow(QMainWindow):
 
     def empty_readings(self):
         """Emit and empty readings response to empty UI elements."""
-        logging.info("Nothing received from topic for a while, resetting charts.")
+        logger.info("Nothing received from topic for a while, resetting charts.")
         readings = utils.DEFAULT_MESSAGE
         readings["timestamp"] = time.time()
         self.update_readings(readings)

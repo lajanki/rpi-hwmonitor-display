@@ -1,4 +1,3 @@
-import json
 import logging
 from concurrent.futures import TimeoutError
 
@@ -7,8 +6,8 @@ from google.cloud import pubsub_v1
 import transport
 
 
-logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 
+logger = logging.getLogger()
 
 class Subscriber:
 
@@ -24,7 +23,7 @@ class Subscriber:
             callback (callable): the callback to process the messages
         """
         self.streaming_pull_future = self.client.subscribe(self.subscription_path, callback=callback)
-        logging.info(f"Listening for messages on topic {self.subscription_path}...\n")
+        logger.info(f"Listening for messages on topic {self.subscription_path}...\n")
 
         with self.client:
             try:

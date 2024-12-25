@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QApplication
 import hwmonitorGUI
 
 
-logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
+logging.basicConfig(format="%(asctime)s - %(filename)s - %(levelname)s - %(message)s", level="INFO")
 
 
 if __name__ == "__main__":
