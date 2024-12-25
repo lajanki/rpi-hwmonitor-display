@@ -13,6 +13,14 @@ logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 CoreTemp = namedtuple("CoreTemp", ["label", "value"])
 
 
+NVML_AVAILABLE = True
+try:
+    pynvml.nvmlInit()
+except pynvml.NVMLError_LibraryNotFound:
+    logging.warning("NVIDIA Management Library (NVML) not detected, Disabling GPU tracking.")
+    NVML_AVAILABLE = False
+
+
 
 def get_stats():
     """Gather various CPU, GPU and RAM statistics to a dictionary as message
@@ -21,7 +29,7 @@ def get_stats():
     return {
         "cpu": get_cpu_info(),
         "ram": get_ram_info(),
-        "gpu": get_gpu_info()
+        "gpu": get_gpu_info() if NVML_AVAILABLE else utils.DEFAULT_MESSAGE["gpu"]
     }
 
 def get_ram_info():
@@ -39,26 +47,20 @@ def get_gpu_info():
     can be difficult to properly setup in Windows.
     https://pypi.org/project/nvidia-ml-py/
     https://docs.nvidia.com/deploy/nvml-api/index.html
-    Nvidia only.
     """
-    try:
-        pynvml.nvmlInit()
-        handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # get GPU at inex 0
-        mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-        util_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
-        temp_info = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+    pynvml.nvmlInit()
+    handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # get GPU at index 0
+    mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+    util_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
+    temp_info = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
 
-        stats = {
-            "memory.used": int(mem_info.used / 10**6), # MB
-            "memory.total": int(mem_info.total / 10**6),
-            "utilization": util_info.gpu,
-            "temperature": temp_info
-        }
-        pynvml.nvmlShutdown()
-
-    except pynvml.NVMLError_LibraryNotFound as e:
-        logging.warning("Unable to load pynvml library, defaulting to empty values")
-        stats = utils.DEFAULT_MESSAGE["gpu"]
+    stats = {
+        "memory.used": int(mem_info.used / 10**6), # MB
+        "memory.total": int(mem_info.total / 10**6),
+        "utilization": util_info.gpu,
+        "temperature": temp_info
+    }
+    pynvml.nvmlShutdown()
 
     return stats
 
