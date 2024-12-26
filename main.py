@@ -13,22 +13,27 @@ logging.basicConfig(format="%(asctime)s - %(filename)s - %(levelname)s - %(messa
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="HWMonitor GUI")
+    parser = argparse.ArgumentParser(description="Hardware monitor")
     parser.add_argument("--fullscreen", action="store_true", help="fullscreen mode")
     parser.add_argument("--debug", action="store_true", help="debug mode")
     parser.add_argument(
-        "--transport-worker",
-        nargs="?",
-        choices=["LocalNetworkWorker", "PubSubWorker"],
-        default="PubSubWorker",
-        help="transport layer to use for passing hardware measurements",
+        "--transport",
+        choices=["LAN", "Pub/Sub"],
+        default="Pub/Sub",
+        help="transport layer to use for passing hardware readings between client and server.",
     )
 
     args = parser.parse_args()
 
     app = QApplication(sys.argv)
-    transport_class = getattr(message_workers, args.transport_worker)
-    logging.info("Using %s message transport worker", args.transport_worker)
+
+    TRANSPORT_WORKER_MAP = {
+        "Pub/Sub": message_workers.PubSubWorker,
+        "LAN": None   # TODO: implement
+    }
+
+    transport_class = TRANSPORT_WORKER_MAP[args.transport]
+    logging.info("Using %s message transport layer", args.transport)
     hw_monitor = hwmonitorGUI.MainWindow(transport_class)
 
     with open("style.qss") as f:
