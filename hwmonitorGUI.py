@@ -1,6 +1,5 @@
 import logging
 import time
-import json
 
 import numpy as np
 from PyQt5.QtGui import QFont, QIcon, QPixmap
@@ -27,7 +26,6 @@ from PyQt5.QtWidgets import (
 import pyqtgraph as pg
 
 from transport import UPDATE_INTERVAL
-from message_workers import PubSubWorker
 import utils
 
 
@@ -37,11 +35,12 @@ logger = logging.getLogger()
 class MainWindow(QMainWindow):
     """Main GUI window."""
 
-    def __init__(self):
+    def __init__(self, transport_worker_class):
         super().__init__()
+        self.transport_worker_class = transport_worker_class
         self.core_window = CPUCoreWindow()
         self.init_ui()
-        self.setup_pubsub_pull()
+        self.setup_msg_pull()
 
     def init_ui(self):
         main_widget = QWidget()
@@ -222,12 +221,13 @@ class MainWindow(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    def setup_pubsub_pull(self):
+    def setup_msg_pull(self):
         """Start polling for statistics from the topic in a separate thread."""
         self.thread = QThread()
 
-        # Create a worker and move to thread
-        self.worker = PubSubWorker()
+        # Instantiate a worker and move to thread.
+        # Keep a reference to the worker to prevent garbage collection.
+        self.worker = self.transport_worker_class()
         self.worker.moveToThread(self.thread)
 
         # Connect signals and slots

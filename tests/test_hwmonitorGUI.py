@@ -33,8 +33,7 @@ mock_message = {
 
 def test_reading_widget_update(qtbot):
     """Does receiving new readings update the corresponding GUI elements?"""
-    with patch("hwmonitorGUI.PubSubWorker"):
-        main_window = hwmonitorGUI.MainWindow()
+    main_window = hwmonitorGUI.MainWindow(transport_worker_class=Mock)
         
     qtbot.addWidget(main_window)
 
