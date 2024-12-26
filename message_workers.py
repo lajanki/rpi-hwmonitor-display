@@ -6,7 +6,7 @@ from PyQt5.QtCore import (
     pyqtSignal
 )
 
-from transport.subscriber import Subscriber
+from transport.pubsub_subscriber import Subscriber
 
 
 class PubSubWorker(QObject):

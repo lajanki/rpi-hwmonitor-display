@@ -6,8 +6,8 @@ from google.cloud import pubsub_v1
 import transport
 
 
-
 logger = logging.getLogger()
+
 
 class Subscriber:
 
