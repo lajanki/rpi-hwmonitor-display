@@ -41,7 +41,7 @@ class PubSubPublisher(BasePublisher):
                 self.client.publish(self.topic_path, data)
 
                 bytes_generated += len(data)
-                bytes_processed += MIN_PROCESS_SIZE  
+                bytes_processed += MIN_PROCESS_SIZE
                 time.sleep(transport.UPDATE_INTERVAL)
             
                 messages_published = int(bytes_processed/MIN_PROCESS_SIZE)
@@ -51,14 +51,13 @@ class PubSubPublisher(BasePublisher):
                 # Print statistics overwriting previous line
                 print(f"Messages published: {messages_published} ### MB published/generated: {megabytes_published}/{megabytes_generated}", end="\r")
         except KeyboardInterrupt:
-            # Send an empty message to clear (static) visuals.
-            # Note: the utilization graph history will remain visible.
+            # Send an empty message to clear static visuals.
             print()
             logger.info("Stopping publish")
             # Wait a while to give Pub/Sub time to process recent messages
             time.sleep(transport.UPDATE_INTERVAL)
 
-            logger.info("Sending empty message...")
+            logger.debug("Sending empty message...")
             data = json.dumps(utils.DEFAULT_MESSAGE).encode("utf-8")
             future = self.client.publish(self.topic_path, data)
             future.result()

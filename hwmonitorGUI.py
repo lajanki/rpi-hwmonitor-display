@@ -222,7 +222,9 @@ class MainWindow(QMainWindow):
         self.move(qr.topLeft())
 
     def setup_msg_pull(self):
-        """Start polling for statistics from the topic in a separate thread."""
+        """Start a worker thread to listen for incoming hardware readings.
+        Connect the thread's update signal to UI refresh call.
+        """
         self.thread = QThread()
 
         # Instantiate a worker and move to thread.
@@ -295,7 +297,6 @@ class MainWindow(QMainWindow):
             old_data = self.utilization_plots[key].getData()
 
             # Ignore this reading if older than the latest data point in graph.
-            # (Pub/Sub does not guarantee ordering by default. Fix: enable ordering?)
             if readings["timestamp"] <= old_data[0][-1]:
                 logger.warning("Discarding out-of-order item. Age: %ds", time.time() - readings["timestamp"])
                 return
