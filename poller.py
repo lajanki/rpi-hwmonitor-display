@@ -1,6 +1,7 @@
 import argparse
 import logging
 
+import transport.local_network_publisher
 import transport.pubsub_publisher
 
 
@@ -21,7 +22,7 @@ if __name__ == "__main__":
 
     TRANSPORT_PUBLISHER_MAP = {
         "Pub/Sub": transport.pubsub_publisher.PubSubPublisher,
-        "LAN": None  # TODO: implement
+        "LAN": transport.local_network_publisher.LocalNetworkPublisher
     }
 
     publisher = TRANSPORT_PUBLISHER_MAP[args.transport]()

@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     TRANSPORT_WORKER_MAP = {
         "Pub/Sub": message_workers.PubSubWorker,
-        "LAN": None   # TODO: implement
+        "LAN": message_workers.LocalNetworkWorker
     }
 
     transport_class = TRANSPORT_WORKER_MAP[args.transport]
