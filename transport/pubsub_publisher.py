@@ -1,7 +1,6 @@
 import json
 import logging
 import time
-import sys
 
 from google.cloud import pubsub_v1
 
@@ -12,19 +11,22 @@ from transport.base_publisher import BasePublisher
 import utils
 
 
-
 logger = logging.getLogger()
+REFRESH_INTERVAL = transport.CONFIG["transport"]["refresh_interval"]
 
 
 class PubSubPublisher(BasePublisher):
 
     def __init__(self):
         self.client = pubsub_v1.PublisherClient()
-        self.topic_path = self.client.topic_path(transport.PROJECT_ID, transport.TOPIC_ID)
+        self.topic_path = self.client.topic_path(
+            transport.CONFIG["transport"]["pubsub"]["project_id"],
+            transport.CONFIG["transport"]["pubsub"]["topic_id"]
+        )
     
     def publish(self):
         """Continuously fetch current statistics and publish as message.
-        Publish a new message every UPDATE_INTERVAL seconds.
+        Publish a new message every REFRESH_INTERVAL seconds.
         """
         bytes_generated = 0
         bytes_processed = 0
@@ -42,7 +44,7 @@ class PubSubPublisher(BasePublisher):
 
                 bytes_generated += len(data)
                 bytes_processed += MIN_PROCESS_SIZE
-                time.sleep(transport.UPDATE_INTERVAL)
+                time.sleep(REFRESH_INTERVAL)
             
                 messages_published = int(bytes_processed/MIN_PROCESS_SIZE)
                 megabytes_published = round(bytes_processed/10**6, 2)
@@ -55,7 +57,7 @@ class PubSubPublisher(BasePublisher):
             print()
             logger.info("Stopping publish")
             # Wait a while to give Pub/Sub time to process recent messages
-            time.sleep(transport.UPDATE_INTERVAL)
+            time.sleep(REFRESH_INTERVAL)
 
             logger.debug("Sending empty message...")
             data = json.dumps(utils.DEFAULT_MESSAGE).encode("utf-8")
@@ -63,4 +65,3 @@ class PubSubPublisher(BasePublisher):
             future.result()
 
             logger.info("Exiting")
-            sys.exit()

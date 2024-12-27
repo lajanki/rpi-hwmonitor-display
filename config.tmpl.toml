@@ -1,0 +1,13 @@
+# This is a template file! Fill and rename as config.toml before running.
+
+[transport]
+refresh_interval=2
+
+[transport.socket]
+host="192.168.100.1"
+port=65432
+
+[transport.pubsub]
+project_id=""
+topic_id=""
+subscription_id=""

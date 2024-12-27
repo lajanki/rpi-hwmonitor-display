@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import (
 )
 import pyqtgraph as pg
 
-from transport import UPDATE_INTERVAL
+from transport import CONFIG
 import utils
 
 
@@ -125,8 +125,9 @@ class MainWindow(QMainWindow):
         utilization_graph.addLegend() # Needs to be called before any plotting
 
         # Initialize graphs with zeros for previous 5 minutes
-        NUM_DATAPOINTS = 60//UPDATE_INTERVAL * 5
-        x = [int(time.time()) - UPDATE_INTERVAL*i for i in range(NUM_DATAPOINTS,0,-1)]
+        REFRESH_INTERVAL = CONFIG["transport"]["refresh_interval"]
+        NUM_DATAPOINTS = 60//REFRESH_INTERVAL * 5
+        x = [int(time.time()) - REFRESH_INTERVAL*i for i in range(NUM_DATAPOINTS,0,-1)]
         y = [0] * NUM_DATAPOINTS
 
         cpu_plot = utilization_graph.plot(x, y, pen="#1227F1", name="CPU")

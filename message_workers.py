@@ -8,6 +8,7 @@ from PyQt5.QtCore import (
     pyqtSignal
 )
 
+import transport
 from transport.pubsub_subscriber import Subscriber
 
 
@@ -46,8 +47,8 @@ class LocalNetworkWorker(QObject):
         super().__init__()
 
     def run(self):
-        HOST = "192.168.100.19"
-        PORT = 65432
+        HOST = transport.CONFIG["transport"]["socket"]["host"]
+        PORT = transport.CONFIG["transport"]["socket"]["port"]
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((HOST, PORT))
