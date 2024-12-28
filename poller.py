@@ -13,7 +13,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--transport",
         choices=["LAN", "Pub/Sub"],
-        default="Pub/Sub",
+        default="LAN",
         help="transport layer to use for publishing hardware readings.",
     )
 
