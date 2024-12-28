@@ -50,6 +50,7 @@ class LocalNetworkWorker(QObject):
         HOST = transport.CONFIG["transport"]["socket"]["host"]
         PORT = transport.CONFIG["transport"]["socket"]["port"]
 
+        # Bind a socket and continously listen for incoming data
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((HOST, PORT))
             s.listen(0)
@@ -57,7 +58,7 @@ class LocalNetworkWorker(QObject):
             with conn:
                 logger.info("Connected by %s", addr)
                 while True:
-                    data = conn.recv(1024)
+                    data = conn.recv(1024) # Note: we're assuming a single (json) message fits into 1024 bytes! (TODO?)
                     readings = json.loads(data.decode("utf-8"))
                     self.update.emit(readings)
 

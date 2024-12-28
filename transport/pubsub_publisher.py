@@ -32,7 +32,7 @@ class PubSubPublisher(BasePublisher):
         bytes_processed = 0
 
         # Pub/Sub processes a minimum of 1 000 bytes per push and pull
-        # https://cloud.google.com/pubsub/pricing#:~:text=A%20minimum%20of%201000%20bytes,assessed%20regardless%20of%20message%20size
+        # https://cloud.google.com/pubsub/quotas#throughput_quota_units
         MIN_PROCESS_SIZE = 1000
 
         logger.info("Polling started...")

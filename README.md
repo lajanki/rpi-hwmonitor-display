@@ -1,7 +1,11 @@
 # rpi-hwmonitor-display
-A system hardware status monitor displaying host system's CPU, RAM and GPU statistics on a Raspberry Pi client. Host can be a Linux or a Windows system. Message delivery between host and client is based on Google Pub/Sub.
+A client-server model system hardware status monitor.
 
 [![Unit tests](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml/badge.svg?branch=main)](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml)
+
+Displays client system's CPU, (Nvidia) GPU and memory usage statistics on a separate server device. Built with a Raspberry Pi as the server.
+
+Hardware readings are periodically collected from the client and sent to the server via a TCP socket over a local network.
 
 System statistics monitored include:
  * Current CPU utilization :computer:
@@ -20,61 +24,80 @@ System statistics monitored include:
 ![Main window](hwmonitor.png)
 
 
-## Google Cloud Setup
-To setup the Google Cloud infrastructure you need:
- * a [Google Cloud project](https://cloud.google.com/) with Pub/Sub enabled.
- * [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) with `gcloud` command line tool.
+## Setup
+To setup the network connection, add the server system's (the monitor) local IP address or hostname to `config.tmpl.toml`
+and rename the file to `config.toml`. Optionally, the TCP port number can also be configured. 
 
-Then create the a topic with a subscription and a service account using `setup_pubsub.sh`:
- * fill `.template_env` with your project id and names for your Pub/Sub topic and subscription.
- * Rename the file to `.env`.
- * Source the file and create the related resources with
-    ```shell
-    source .env
-    ./setup_pubsub.sh
-    ```
-This will also download a json key for the service account to `~/Downloads`. This can be used as an authentication method from Raspberry Pi by setting
-the `GOOGLE_APPLICATION_CREDENTIALS` env variable (it can be added to your `.env` file).
- * https://cloud.google.com/docs/authentication/application-default-credentials
-
-
-
-## Python setup - Linux
+### Python setup
 Install dependencies with
 ```shell
 pip install -r requirements.txt
 ```
 
 ## Run
-Run the statistics poller on the host system with:
-```shell
-python poller.py
-```
-Then, run the monitor on the client (or in a different terminal) with
+First, start the monitor process on the server with:
 ```shell
 python main.py
 ```
 
-## Windows setup
-Running the poller on Windows requires some additional preparations. The library used to poll CPU statistics on Linux, `psutil`, has limited functionality on Windows. In order to retain it, polling on Windows relies on a 3rd party software, [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor). Download the monitor and run it in the background. Having it automatically start on Windows startup is recommended.
+Then, run the statistics poller on the client (or sinply from another terminal window) with:
+```shell
+python poller.py
+```
 
-Next, install Windows only dependencies with
+
+## Note on Windows setup
+Running the poller on Windows requires some additional preparations. The library used to poll CPU statistics on Linux,
+`psutil`, has limited functionality on Windows. In order to retain it, polling on Windows relies on a 3rd party tool,
+[LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor).
+Download the monitor and run it in the background.
+Having it automatically start on Windows startup is recommended.
+
+Then, install Windows only dependencies with
 ```shell
 pip install -r requirements-win.txt
 ```
 
 You can now run `poller.py` with the above command.
 
-
-## Poller configuration and Pub/Sub pricing
-Polling frequency can be adjusted in `.env`. If not set, a default value of 5 will be used which means statistics are polled, and a message is published to the Pub/Sub topic every 5 seconds.
-
-Pub/Sub's [pricing](https://cloud.google.com/pubsub/pricing) is based on data sent with a minimum of 1000 bytes per publish. Actual data published is around 600kB. Thus, publishing and receiving a message every 5 seconds (12 times per minute) transmit a total of `12 * 2kB = 24kB` per minute. Running both the poller and the monitor constantly would then transmit `24 * 60 * 24kB = 34560kB ~ 35MB` per day, roughly `1 GB / month`. 
-
-There is a free tier where the first 10 gigabytes of usage each month are free.
-
 ## Unit tests
 Unit tests can be run with:
 ```shell
 pytest
 ```
+
+
+## Legacy: Running on Google Cloud infrastructure
+An alternative transport mechanism is avialble for passing the hardware readings to the server: Google Cloud Pub/Sub.
+However, this is a legacy solution requiring more setup and offering no real benefit over a local network.
+It can be useful when the client and the server are not in the same network.
+
+To setup the Google Cloud infrastructure you need:
+ * a [Google Cloud project](https://cloud.google.com/) with Pub/Sub enabled.
+ * [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) with `gcloud` command line tool.
+
+Then create the a topic with a subscription and a service account with the setup script `extras/setup_pubsub.sh`:
+```shell
+cd extras
+./setup_pubsub.sh
+```
+
+This will also download a json key for the service account and set the `GOOGLE_APPLICATION_CREDENTIALS`
+env variable in `extras/.env` which will be used to auhenticate to Google Cloud.
+ * https://cloud.google.com/docs/authentication/application-default-credentials
+
+
+To run the poller and the server using Pub/Sub as transport, pass `--transport Pub/Sub` as an argument to both
+files.
+
+
+### Pub/Sub pricing
+Pub/Sub's [pricing](https://cloud.google.com/pubsub/pricing) is (mostly) based on throughput (data published to and read from a topic).
+
+A single message published is around `500B`. However, Pub/Sub will process a minimum of `1 000B` per call
+ * https://cloud.google.com/pubsub/quotas#throughput_quota_units
+
+Thus, running the poller and monitor constantly for 24 hours with the default refresh interval of 2 seconds
+(ie. 43 200 messages) will process a total of `43 200 * 2 * 1kB = 86 400kB ~ 84MB`
+
+There is a free tier where the first `10GiB` of throughput is free each month.
