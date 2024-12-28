@@ -4,7 +4,8 @@ from dotenv import load_dotenv
 
 
 BASE = os.path.join(os.path.dirname(__file__), "..")
-load_dotenv(dotenv_path=os.path.join(BASE, ".env"))
+load_dotenv(dotenv_path=os.path.join(BASE, "extras", ".env"))
+
 
 with open(os.path.join(BASE, "config.toml")) as f:
     CONFIG = toml.load(f)

@@ -1,6 +1,14 @@
+# Update PROJECT_ID to match your project!
+PROJECT_ID="my-project"
+TOPIC_ID="hwmonitor"
+
+$SUBSCRIPTION_ID="${TOPIC_ID}-sub"
+
+
+# Create a topic
 gcloud pubsub topics create $TOPIC_ID --project $PROJECT_ID
 
-# Setup subscription with 10 minute message retention period (the minimum)
+# Setup subscription with minimal message retention
 gcloud pubsub subscriptions create $SUBSCRIPTION_ID \
     --expiration-period 365d \
     --topic $TOPIC_ID \
@@ -23,5 +31,8 @@ gcloud pubsub subscriptions add-iam-policy-binding $SUBSCRIPTION_ID \
     --project $PROJECT_ID
 
 # Download a local json key
-gcloud iam service-accounts keys create ~/Downloads/hwmonitor.json \
+gcloud iam service-accounts keys create $HOME/Downloads/hwmonitor.json \
     --iam-account "hwmonitor@$PROJECT_ID.iam.gserviceaccount.com"
+
+# point GOOGLE_APPLICATION_CREDENTIALS env variable to the key
+echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/Downloads/hwmonitor.json" > .env
