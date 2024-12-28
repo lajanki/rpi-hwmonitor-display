@@ -1,6 +1,9 @@
 # rpi-hwmonitor-display
 A client-server model system hardware status monitor.
 
+![Main window](hwmonitor.png)
+
+
 [![Unit tests](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml/badge.svg?branch=main)](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml)
 
 Displays client system's CPU, (Nvidia) GPU and memory usage statistics on a separate server device. Built with a Raspberry Pi as the server.
@@ -20,8 +23,6 @@ System statistics monitored include:
 > [!NOTE]  
 > Only Nvidia GPUs are supported
  
-
-![Main window](hwmonitor.png)
 
 
 ## Setup
@@ -44,6 +45,8 @@ Then, run the statistics poller on the client (or sinply from another terminal w
 ```shell
 python poller.py
 ```
+
+![Network](network.drawio.png)
 
 
 ## Note on Windows setup
