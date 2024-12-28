@@ -129,6 +129,8 @@ six==1.16.0
     #   google-auth
 stack-data==0.6.2
     # via ipython
+toml==0.10.2
+    # via -r requirements.in
 tomli==2.0.1
     # via pytest
 traitlets==5.9.0
