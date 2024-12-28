@@ -53,3 +53,10 @@ class LocalNetworkPublisher(BasePublisher):
                 s.close()
 
                 logger.info("Exiting")
+            # server socket was closed
+            except BrokenPipeError:
+                logger.critical("Connection closed")
+                logger.info("Exiting")
+            # server is not ready to accept connections
+            except ConnectionRefusedError:
+                logger.critical("Connection refused. Is the server running?")
