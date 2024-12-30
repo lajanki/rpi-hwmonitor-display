@@ -1,10 +1,44 @@
-import pytest
+import json
+import time
 from unittest.mock import patch, Mock
 
+from freezegun import freeze_time
 from pytest_schema import schema
 
-from transport import hw_stats
+from transport import hw_stats, local_network_publisher
+from utils import DEFAULT_MESSAGE
 
+
+@freeze_time("2022-05-13T00:00:00")
+@patch("transport.hw_stats.get_stats")
+@patch("time.sleep")
+@patch("socket.socket")
+def test_local_network_publish(mock_socket, mock_sleep, mock_get_stats):
+    """Check messages sent to the socket by a LocalNetworkPublisher."""
+    # raise a KeyboardInterrut on the sleep call to break the infinite loop
+    mock_sleep.side_effect = KeyboardInterrupt()
+
+    # Mock the hw stats call with a dummy dict data
+    mock_get_stats.return_value = {"a": 1}
+
+    p = local_network_publisher.LocalNetworkPublisher()
+    p.publish()
+
+    s = mock_socket.return_value.__enter__.return_value
+
+    # socket connect
+    s.connect.assert_called()
+
+    # true message with timestamp
+    msg = json.dumps({"a": 1, "timestamp": time.time()}).encode()
+    s.send.assert_any_call(msg)
+
+    # KeyboardInterrupt should send an empty message (without the timestamp)
+    final_msg = json.dumps(DEFAULT_MESSAGE).encode()
+    s.send.assert_any_call(final_msg)
+
+    # socket close
+    s.close.assert_called()
 
 @patch("transport.hw_stats.psutil")
 @patch("transport.hw_stats.pynvml")

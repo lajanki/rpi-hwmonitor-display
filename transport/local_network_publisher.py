@@ -24,7 +24,6 @@ class LocalNetworkPublisher(BasePublisher):
         HOST = transport.CONFIG["transport"]["socket"]["host"]
         PORT = transport.CONFIG["transport"]["socket"]["port"]
 
-
         logger.info("Polling started...")
         logger.info("Ctrl-C to exit")
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
