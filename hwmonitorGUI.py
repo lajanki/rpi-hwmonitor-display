@@ -40,7 +40,6 @@ class MainWindow(QMainWindow):
         self.transport_worker_class = transport_worker_class
         self.core_window = CPUCoreWindow()
         self.init_ui()
-        self.setup_msg_pull()
 
     def init_ui(self):
         main_widget = QWidget()
@@ -87,7 +86,6 @@ class MainWindow(QMainWindow):
         self.clock_lcd = QLCDNumber(5, self, objectName="clock_qlcd")
         self.clock_lcd.setSegmentStyle(QLCDNumber.Flat)
         cpu_stats_grid.addWidget(self.clock_lcd, 0, 1, 1, 2)
-        self.setup_clock_polling()
 
         ### CPU utilization statistics labels
         # The QLCD widget has limited support for non-digit characters.
@@ -210,7 +208,6 @@ class MainWindow(QMainWindow):
         ram_grid.addWidget(ram_plot)
         metric_grid.addLayout(ram_grid)
 
-
         self.resize(620, 420)
         self.setWindowTitle("HWMonitor")
         self.setWindowIcon(QIcon("resources/iconfinder_gnome-system-monitor_23964.png"))
@@ -221,6 +218,11 @@ class MainWindow(QMainWindow):
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
+    def start_worker_threads(self):
+        """Wrapper for starting all worker threads."""
+        self.setup_msg_pull()
+        self.setup_clock_timer()
 
     def setup_msg_pull(self):
         """Start a worker thread to listen for incoming hardware readings.
@@ -241,9 +243,9 @@ class MainWindow(QMainWindow):
         # Setup timer for emptying current readings
         self.thread.start()
 
-    def setup_clock_polling(self):
-        """Set clock QLCD display to the current time and start polling for
-        with 1 second intervals.
+    def setup_clock_timer(self):
+        """Setup a thread for periodically updating the QLCD widget with
+        current time.
         """
         def tick():
             s = time.strftime("%H:%M")

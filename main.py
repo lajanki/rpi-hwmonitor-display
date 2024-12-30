@@ -34,19 +34,20 @@ if __name__ == "__main__":
 
     transport_class = TRANSPORT_WORKER_MAP[args.transport]
     logging.info("Using %s message transport layer", args.transport)
-    hw_monitor = hwmonitorGUI.MainWindow(transport_class)
+    window = hwmonitorGUI.MainWindow(transport_class)
+    window.start_worker_threads()
 
     with open("style.qss") as f:
-        hw_monitor.setStyleSheet(f.read())
+        window.setStyleSheet(f.read())
 
     if args.debug:
         logging.getLogger().setLevel("DEBUG")
 
     if args.fullscreen:
-        hw_monitor.showFullScreen()
-        hw_monitor.setCursor(Qt.BlankCursor)
+        window.showFullScreen()
+        window.setCursor(Qt.BlankCursor)
 
-    hw_monitor.show()
+    window.show()
 
     res = app.exec_()
     sys.exit(res)
