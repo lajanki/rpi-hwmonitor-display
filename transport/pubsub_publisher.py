@@ -7,8 +7,7 @@ from google.cloud import pubsub_v1
 import transport
 from transport import hw_stats
 from transport.base_publisher import BasePublisher
-
-import utils
+from message_model import MessageModel
 
 
 logger = logging.getLogger()
@@ -39,7 +38,7 @@ class PubSubPublisher(BasePublisher):
         logger.info("Ctrl-C to exit")
         try:
             while True:
-                data = json.dumps(hw_stats.get_stats()).encode("utf-8")
+                data = hw_stats.get_stats().model_dump_json().encode()
                 self.client.publish(self.topic_path, data)
 
                 bytes_generated += len(data)
@@ -60,7 +59,7 @@ class PubSubPublisher(BasePublisher):
             time.sleep(REFRESH_INTERVAL)
 
             logger.debug("Sending empty message...")
-            data = json.dumps(utils.DEFAULT_MESSAGE).encode("utf-8")
+            data = MessageModel().model_dump_json().encode()
             future = self.client.publish(self.topic_path, data)
             future.result()
 

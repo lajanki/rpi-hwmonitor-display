@@ -29,7 +29,7 @@ class PubSubWorker(QObject):
         """
         readings = json.loads(message.data.decode("utf-8"))
 
-        # Add pubsub provided message timestamp
+        # Replace message timestamp with Pub/Subs own message timestamp
         readings["timestamp"] = message.publish_time.timestamp()
         self.update.emit(readings)
         message.ack()

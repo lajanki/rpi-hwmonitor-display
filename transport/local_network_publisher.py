@@ -6,8 +6,7 @@ import socket
 import transport
 from transport import hw_stats
 from transport.base_publisher import BasePublisher
-
-import utils
+from message_model import MessageModel
 
 
 logger = logging.getLogger()
@@ -31,10 +30,7 @@ class LocalNetworkPublisher(BasePublisher):
                 s.connect((HOST, PORT))
 
                 while True:
-                    readings = hw_stats.get_stats()
-                    readings["timestamp"] = time.time()
-
-                    data = json.dumps(readings).encode("utf-8")
+                    data = hw_stats.get_stats().model_dump_json().encode()
                     s.send(data)
                 
                     # Print statistics overwriting previous line
@@ -47,7 +43,7 @@ class LocalNetworkPublisher(BasePublisher):
                 print()
                 logger.info("Stopping publish")
                 logger.debug("Sending empty message...")
-                data = json.dumps(utils.DEFAULT_MESSAGE).encode("utf-8")
+                data = MessageModel().model_dump_json().encode()
                 s.send(data)
                 s.close()
 

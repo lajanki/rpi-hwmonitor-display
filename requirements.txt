@@ -4,6 +4,8 @@
 #
 #    pip-compile
 #
+annotated-types==0.7.0
+    # via pydantic
 asttokens==2.2.1
     # via stack-data
 backcall==0.2.0
@@ -96,10 +98,12 @@ pyasn1==0.5.0
     #   rsa
 pyasn1-modules==0.3.0
     # via google-auth
+pydantic==2.10.4
+    # via -r requirements.in
+pydantic-core==2.27.2
+    # via pydantic
 pygments==2.15.1
     # via ipython
-pyjson5==1.6.3
-    # via -r requirements.in
 pyqt5==5.15.9
     # via -r requirements.in
 pyqt5-qt5==5.15.2
@@ -142,6 +146,10 @@ traitlets==5.9.0
     # via
     #   ipython
     #   matplotlib-inline
+typing-extensions==4.12.2
+    # via
+    #   pydantic
+    #   pydantic-core
 urllib3==1.26.16
     # via
     #   google-auth

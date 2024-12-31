@@ -3,7 +3,7 @@ google-cloud-pubsub
 ipython
 nvidia-ml-py
 psutil
-pyjson5
+pydantic
 PyQt5
 pyqtgraph
 pytest

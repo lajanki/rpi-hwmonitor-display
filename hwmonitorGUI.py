@@ -286,7 +286,7 @@ class MainWindow(QMainWindow):
 
 
         label = self.cpu_stats_labels["1 min"]
-        val = readings["cpu"]["1_min_load_average"]
+        val = readings["cpu"]["load_average_1min"]
         label.setText("{:.1f}<span style='font-size:20px'>(1 min)</span>".format(val))
 
         label = self.cpu_stats_labels["#"]
@@ -316,10 +316,10 @@ class MainWindow(QMainWindow):
         self.system_mem_bar_label.setText("{}%".format(system_used))
         self.system_mem_label.setText("{:.1f}GB".format(readings["ram"]["used"]/1000))
 
-        gpu_mem_used = int(readings["gpu"]["memory.used"] / readings["gpu"]["memory.total"] * 100)
+        gpu_mem_used = int(readings["gpu"]["mem_used"] / readings["gpu"]["mem_total"] * 100)
         self.gpu_mem_bg_used.setOpts(height=[gpu_mem_used])
         self.gpu_mem_bar_label.setText("{}%".format(gpu_mem_used))
-        self.gpu_mem_label.setText("{:.1f}GB".format(readings["gpu"]["memory.used"]/1000))
+        self.gpu_mem_label.setText("{:.1f}GB".format(readings["gpu"]["mem_used"]/1000))
 
     def _update_temperature(self, readings):
         """Update temperature QLabels."""
@@ -328,12 +328,6 @@ class MainWindow(QMainWindow):
         self.gpu_temperature.setText(gpu_temperature)
         self.cpu_temperature.setText(cpu_temperature)
 
-    def empty_readings(self):
-        """Emit and empty readings response to empty UI elements."""
-        logger.info("Nothing received from topic for a while, resetting charts.")
-        readings = utils.DEFAULT_MESSAGE
-        readings["timestamp"] = time.time()
-        self.update_readings(readings)
 
 class CPUCoreWindow(QWidget):
     """Window for cpu core utilizations."""
