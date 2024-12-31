@@ -37,4 +37,4 @@ class MessageModel(BaseModel):
     cpu: _CPUModel = _CPUModel()
     gpu: _GPUModel = _GPUModel()
     ram: _RAMModel = _RAMModel()
-    timestamp: float = Field(default_factory=time.time)  # UNIX timestamp in seconds
+    timestamp: float = Field(default_factory=time.time)  # current UNIX timestamp in seconds
