@@ -37,6 +37,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self, transport_worker_class):
         super().__init__()
+        self.message_worker_thread = QThread()
         self.transport_worker_class = transport_worker_class
         self.core_window = CPUCoreWindow()
         self.init_ui()
@@ -228,20 +229,18 @@ class MainWindow(QMainWindow):
         """Start a worker thread to listen for incoming hardware readings.
         Connect the thread's update signal to UI refresh call.
         """
-        self.thread = QThread()
-
         # Instantiate a worker and move to thread.
-        # Keep a reference to the worker to prevent garbage collection.
+        # Keep a reference to the worker to prevent the socket connection
+        # from being garbage ccollected.
         self.worker = self.transport_worker_class()
-        self.worker.moveToThread(self.thread)
+        self.worker.moveToThread(self.message_worker_thread)
 
         # Connect signals and slots
-        self.thread.started.connect(self.worker.run)
-        self.thread.finished.connect(self.thread.deleteLater)
+        self.message_worker_thread.started.connect(self.worker.run)
+        self.message_worker_thread.finished.connect(self.message_worker_thread.deleteLater)
         self.worker.update.connect(self.update_readings)
 
-        # Setup timer for emptying current readings
-        self.thread.start()
+        self.message_worker_thread.start()
 
     def setup_clock_timer(self):
         """Setup a thread for periodically updating the QLCD widget with
@@ -258,15 +257,15 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def stop_thread_and_exit(self):
-        """Stop any running SubscriberThread and exit the application."""
-        self.thread.exit()
+        """Stop any running worker threads and exit the application."""
+        self.message_worker_thread.exit()
         self.core_window.close()
         self.close()
 
     @pyqtSlot(dict)
     def update_readings(self, readings):
-        """slot for SubscriberThread: receives latest hardware readings
-        and updates the GUI.
+        """Slot for message worker: receive latest hardware readings
+        and update the GUI.
         """
         self._update_cpu_stat_cards(readings)
         self._update_utilization_graphs(readings)
