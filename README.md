@@ -35,6 +35,24 @@ Install dependencies with
 pip install -r requirements.txt
 ```
 
+### Note in PyQt5 installation
+The user interface is based on the Qt framework (version 5). Installing the Python bindings for `PyQt5` can be a bit challenging,
+particuarly for on a Raspberry Pi as it has to be compiled from source. Building from the source includes a hidden
+prompt for accepting its GPL license. The above pip install command may hang, and eventually be killed, due to this step.
+
+To pass this prompt, install PyQt5, and its dependencies, with:
+
+```shell
+pip -v install --config-settings --confirm-license= PyQt5
+```
+See,
+https://www.riverbankcomputing.com/static/Docs/PyQt5/installation.html#installing-the-gpl-version
+for more information.
+
+> [!NOTE]  
+> On an older Raspberry Pi model this may take several hours!
+
+
 ## Run
 First, start the monitor process on the server with:
 ```shell
