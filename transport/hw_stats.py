@@ -63,8 +63,8 @@ def get_gpu_info():
     temp_info = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
 
     stats = {
-        "memory.used": int(mem_info.used / 10**6), # MB
-        "memory.total": int(mem_info.total / 10**6),
+        "mem_used": int(mem_info.used / 10**6), # MB
+        "mem_total": int(mem_info.total / 10**6),
         "utilization": util_info.gpu,
         "temperature": temp_info
     }
