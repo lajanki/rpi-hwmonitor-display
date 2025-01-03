@@ -1,9 +1,3 @@
-import pyjson5
-
-
-with open("./data/default_message.jsonc") as f:
-    DEFAULT_MESSAGE = pyjson5.load(f)
-
 def interpolate(p1, p2, x):
     """Compute y value at x for the linear function
     passing through two points.

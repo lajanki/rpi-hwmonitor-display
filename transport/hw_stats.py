@@ -5,7 +5,7 @@ import os
 import psutil
 import pynvml
 
-import utils
+from message_model import MessageModel
 
 
 logger = logging.getLogger()
@@ -23,17 +23,23 @@ except pynvml.NVMLError_LibraryNotFound:
 
 
 def get_stats():
-    """Gather various CPU, GPU and RAM statistics to a dictionary as message
+    """Gather various CPU, GPU and RAM readings to pydantic model as message
     to be published.
+    Return:
+        pydantic MessageModel of the harware readings
     """
-    return {
+    data = {
         "cpu": get_cpu_info(),
         "ram": get_ram_info(),
-        "gpu": get_gpu_info() if NVML_AVAILABLE else utils.DEFAULT_MESSAGE["gpu"]
+        "gpu": get_gpu_info() if NVML_AVAILABLE else MessageModel().gpu.model_dump()
     }
+    return MessageModel(**data)
 
 def get_ram_info():
-    """System memory usage in MB via psutil."""
+    """Get system memory usage via psutil.
+    Return:
+        a dictionary
+    """
     mem = psutil.virtual_memory()
     return {
         "total": int(mem.total / 10**6),
@@ -42,11 +48,13 @@ def get_ram_info():
     }
 
 def get_gpu_info():
-    """GPU usage statistics using Nvidia management libary (NVML).
+    """Get GPU usage statistics using Nvidia management libary (NVML).
     Adapted from gpustat (https://pypi.org/project/gpustat/); this library
     can be difficult to properly setup in Windows.
     https://pypi.org/project/nvidia-ml-py/
     https://docs.nvidia.com/deploy/nvml-api/index.html
+    Return:
+        a dictionary
     """
     pynvml.nvmlInit()
     handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # get GPU at index 0
@@ -55,8 +63,8 @@ def get_gpu_info():
     temp_info = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
 
     stats = {
-        "memory.used": int(mem_info.used / 10**6), # MB
-        "memory.total": int(mem_info.total / 10**6),
+        "mem_used": int(mem_info.used / 10**6), # MB
+        "mem_total": int(mem_info.total / 10**6),
         "utilization": util_info.gpu,
         "temperature": temp_info
     }
@@ -65,7 +73,10 @@ def get_gpu_info():
     return stats
 
 def get_cpu_info():
-    """CPU usage statistics."""
+    """Get CPU usage statistics via psutil.
+    Return:
+        a dictionary
+    """
     stats = {
         "cores": {
             "utilization": list(map(int, psutil.cpu_percent(percpu=True))),

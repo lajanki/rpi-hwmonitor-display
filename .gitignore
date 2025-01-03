@@ -1,8 +1,8 @@
 __pycache__/
 venv/
 .env
+config.toml
 .vscode
-hwmonitor_service_account_key.json
 *.whl
 *.pyc
 

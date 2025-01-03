@@ -1,12 +1,13 @@
 import os
+import toml
 from dotenv import load_dotenv
 
 
 BASE = os.path.join(os.path.dirname(__file__), "..")
-load_dotenv(dotenv_path=os.path.join(BASE, ".env"))
+load_dotenv(dotenv_path=os.path.join(BASE, "extras", ".env"))
 
-PROJECT_ID = os.environ["PROJECT_ID"]
-SUBSCRIPTION_ID = os.environ["SUBSCRIPTION_ID"]
-TOPIC_ID = os.environ["TOPIC_ID"]
-UPDATE_INTERVAL = int(os.getenv("UPDATE_INTERVAL", "5"))
-assert UPDATE_INTERVAL <= 60, "Can't set UPDATE_INTERVAL greater than 60"
+
+with open(os.path.join(BASE, "config.toml")) as f:
+    CONFIG = toml.load(f)
+
+assert 0 < CONFIG["transport"]["refresh_interval"] <= 60, "refresh interval must be between 0 and 60"

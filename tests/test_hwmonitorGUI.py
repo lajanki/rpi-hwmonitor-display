@@ -1,43 +1,22 @@
 import time
 from unittest.mock import patch, Mock
 
+import pytest
+
 import hwmonitorGUI
+from message_workers import LocalNetworkWorker
 
 
-mock_message = {
-    "cpu": {
-        "utilization": 10,
-        "frequency": 11,
-        "temperature": 12,
-        "1_min_load_average": 0.7651,
-        "num_high_load_cores": 2,
-        "cores": {
-            "utilization": [7,0,0,1],
-            "frequency": [],
-            "temperature": []
-        }
-    },
-    "gpu": {
-        "memory.used": 4.5*10**3,
-        "memory.total": 8*10**3,
-        "utilization": 62,
-        "temperature": 70
-    },
-    "ram": {
-        "total": 2*10**3,
-        "used": 1.2*10**3,
-        "available": 8*10**3
-    },
-    "timestamp": time.time()
-}
 
-def test_reading_widget_update(qtbot):
+def test_widget_update(qtbot, mock_msg_data):
     """Does receiving new readings update the corresponding GUI elements?"""
     main_window = hwmonitorGUI.MainWindow(transport_worker_class=Mock)
-        
     qtbot.addWidget(main_window)
 
-    main_window.update_readings(mock_message)
+    msg_data = mock_msg_data.copy()
+    msg_data["timestamp"] = time.time() # add a timestamp to model received json data
+
+    main_window.update_readings(msg_data)
     
     # CPU utilization
     assert main_window.cpu_stats_labels["%"].text() == "10%"
@@ -61,5 +40,5 @@ def test_reading_widget_update(qtbot):
     assert len(main_window.core_window.qlcd_widgets) == 5
 
     # On subsequent calls values should be set
-    main_window.update_readings(mock_message)
+    main_window.update_readings(msg_data)
     assert [ qlcd.intValue() for qlcd in main_window.core_window.qlcd_widgets ] == [7, 0, 0, 1, 0]

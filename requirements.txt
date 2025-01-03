@@ -4,6 +4,8 @@
 #
 #    pip-compile
 #
+annotated-types==0.7.0
+    # via pydantic
 asttokens==2.2.1
     # via stack-data
 backcall==0.2.0
@@ -22,6 +24,8 @@ exceptiongroup==1.1.2
     # via pytest
 executing==1.2.0
     # via stack-data
+freezegun==1.5.1
+    # via -r requirements.in
 google-api-core[grpc]==2.11.1
     # via google-cloud-pubsub
 google-auth==2.22.0
@@ -94,10 +98,12 @@ pyasn1==0.5.0
     #   rsa
 pyasn1-modules==0.3.0
     # via google-auth
+pydantic==2.10.4
+    # via -r requirements.in
+pydantic-core==2.27.2
+    # via pydantic
 pygments==2.15.1
     # via ipython
-pyjson5==1.6.3
-    # via -r requirements.in
 pyqt5==5.15.9
     # via -r requirements.in
 pyqt5-qt5==5.15.2
@@ -115,6 +121,8 @@ pytest-qt==4.2.0
     # via -r requirements.in
 pytest-schema==0.1.1
     # via -r requirements.in
+python-dateutil==2.9.0.post0
+    # via freezegun
 python-dotenv==1.0.0
     # via -r requirements.in
 requests==2.31.0
@@ -127,14 +135,21 @@ six==1.16.0
     # via
     #   asttokens
     #   google-auth
+    #   python-dateutil
 stack-data==0.6.2
     # via ipython
+toml==0.10.2
+    # via -r requirements.in
 tomli==2.0.1
     # via pytest
 traitlets==5.9.0
     # via
     #   ipython
     #   matplotlib-inline
+typing-extensions==4.12.2
+    # via
+    #   pydantic
+    #   pydantic-core
 urllib3==1.26.16
     # via
     #   google-auth

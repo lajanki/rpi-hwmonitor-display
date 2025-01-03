@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import (
 )
 import pyqtgraph as pg
 
-from transport import UPDATE_INTERVAL
+from transport import CONFIG
 import utils
 
 
@@ -37,10 +37,10 @@ class MainWindow(QMainWindow):
 
     def __init__(self, transport_worker_class):
         super().__init__()
+        self.message_worker_thread = QThread()
         self.transport_worker_class = transport_worker_class
         self.core_window = CPUCoreWindow()
         self.init_ui()
-        self.setup_msg_pull()
 
     def init_ui(self):
         main_widget = QWidget()
@@ -87,7 +87,6 @@ class MainWindow(QMainWindow):
         self.clock_lcd = QLCDNumber(5, self, objectName="clock_qlcd")
         self.clock_lcd.setSegmentStyle(QLCDNumber.Flat)
         cpu_stats_grid.addWidget(self.clock_lcd, 0, 1, 1, 2)
-        self.setup_clock_polling()
 
         ### CPU utilization statistics labels
         # The QLCD widget has limited support for non-digit characters.
@@ -125,8 +124,9 @@ class MainWindow(QMainWindow):
         utilization_graph.addLegend() # Needs to be called before any plotting
 
         # Initialize graphs with zeros for previous 5 minutes
-        NUM_DATAPOINTS = 60//UPDATE_INTERVAL * 5
-        x = [int(time.time()) - UPDATE_INTERVAL*i for i in range(NUM_DATAPOINTS,0,-1)]
+        REFRESH_INTERVAL = CONFIG["transport"]["refresh_interval"]
+        NUM_DATAPOINTS = 60//REFRESH_INTERVAL * 5
+        x = [int(time.time()) - REFRESH_INTERVAL*i for i in range(NUM_DATAPOINTS,0,-1)]
         y = [0] * NUM_DATAPOINTS
 
         cpu_plot = utilization_graph.plot(x, y, pen="#1227F1", name="CPU")
@@ -209,7 +209,6 @@ class MainWindow(QMainWindow):
         ram_grid.addWidget(ram_plot)
         metric_grid.addLayout(ram_grid)
 
-
         self.resize(620, 420)
         self.setWindowTitle("HWMonitor")
         self.setWindowIcon(QIcon("resources/iconfinder_gnome-system-monitor_23964.png"))
@@ -221,26 +220,31 @@ class MainWindow(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    def setup_msg_pull(self):
-        """Start polling for statistics from the topic in a separate thread."""
-        self.thread = QThread()
+    def start_worker_threads(self):
+        """Wrapper for starting all worker threads."""
+        self.setup_msg_pull()
+        self.setup_clock_timer()
 
+    def setup_msg_pull(self):
+        """Start a worker thread to listen for incoming hardware readings.
+        Connect the thread's update signal to UI refresh call.
+        """
         # Instantiate a worker and move to thread.
-        # Keep a reference to the worker to prevent garbage collection.
+        # Keep a reference to the worker to prevent the socket connection
+        # from being garbage ccollected.
         self.worker = self.transport_worker_class()
-        self.worker.moveToThread(self.thread)
+        self.worker.moveToThread(self.message_worker_thread)
 
         # Connect signals and slots
-        self.thread.started.connect(self.worker.run)
-        self.thread.finished.connect(self.thread.deleteLater)
+        self.message_worker_thread.started.connect(self.worker.run)
+        self.message_worker_thread.finished.connect(self.message_worker_thread.deleteLater)
         self.worker.update.connect(self.update_readings)
 
-        # Setup timer for emptying current readings
-        self.thread.start()
+        self.message_worker_thread.start()
 
-    def setup_clock_polling(self):
-        """Set clock QLCD display to the current time and start polling for
-        with 1 second intervals.
+    def setup_clock_timer(self):
+        """Setup a thread for periodically updating the QLCD widget with
+        current time.
         """
         def tick():
             s = time.strftime("%H:%M")
@@ -253,15 +257,15 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def stop_thread_and_exit(self):
-        """Stop any running SubscriberThread and exit the application."""
-        self.thread.exit()
+        """Stop any running worker threads and exit the application."""
+        self.message_worker_thread.exit()
         self.core_window.close()
         self.close()
 
     @pyqtSlot(dict)
     def update_readings(self, readings):
-        """slot for SubscriberThread: receives latest hardware readings
-        and updates the GUI.
+        """Slot for message worker: receive latest hardware readings
+        and update the GUI.
         """
         self._update_cpu_stat_cards(readings)
         self._update_utilization_graphs(readings)
@@ -281,7 +285,7 @@ class MainWindow(QMainWindow):
 
 
         label = self.cpu_stats_labels["1 min"]
-        val = readings["cpu"]["1_min_load_average"]
+        val = readings["cpu"]["load_average_1min"]
         label.setText("{:.1f}<span style='font-size:20px'>(1 min)</span>".format(val))
 
         label = self.cpu_stats_labels["#"]
@@ -295,7 +299,6 @@ class MainWindow(QMainWindow):
             old_data = self.utilization_plots[key].getData()
 
             # Ignore this reading if older than the latest data point in graph.
-            # (Pub/Sub does not guarantee ordering by default. Fix: enable ordering?)
             if readings["timestamp"] <= old_data[0][-1]:
                 logger.warning("Discarding out-of-order item. Age: %ds", time.time() - readings["timestamp"])
                 return
@@ -312,10 +315,10 @@ class MainWindow(QMainWindow):
         self.system_mem_bar_label.setText("{}%".format(system_used))
         self.system_mem_label.setText("{:.1f}GB".format(readings["ram"]["used"]/1000))
 
-        gpu_mem_used = int(readings["gpu"]["memory.used"] / readings["gpu"]["memory.total"] * 100)
+        gpu_mem_used = int(readings["gpu"]["mem_used"] / readings["gpu"]["mem_total"] * 100)
         self.gpu_mem_bg_used.setOpts(height=[gpu_mem_used])
         self.gpu_mem_bar_label.setText("{}%".format(gpu_mem_used))
-        self.gpu_mem_label.setText("{:.1f}GB".format(readings["gpu"]["memory.used"]/1000))
+        self.gpu_mem_label.setText("{:.1f}GB".format(readings["gpu"]["mem_used"]/1000))
 
     def _update_temperature(self, readings):
         """Update temperature QLabels."""
@@ -324,12 +327,6 @@ class MainWindow(QMainWindow):
         self.gpu_temperature.setText(gpu_temperature)
         self.cpu_temperature.setText(cpu_temperature)
 
-    def empty_readings(self):
-        """Emit and empty readings response to empty UI elements."""
-        logger.info("Nothing received from topic for a while, resetting charts.")
-        readings = utils.DEFAULT_MESSAGE
-        readings["timestamp"] = time.time()
-        self.update_readings(readings)
 
 class CPUCoreWindow(QWidget):
     """Window for cpu core utilizations."""

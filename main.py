@@ -19,7 +19,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--transport",
         choices=["LAN", "Pub/Sub"],
-        default="Pub/Sub",
+        default="LAN",
         help="transport layer to use for passing hardware readings between client and server.",
     )
 
@@ -29,24 +29,25 @@ if __name__ == "__main__":
 
     TRANSPORT_WORKER_MAP = {
         "Pub/Sub": message_workers.PubSubWorker,
-        "LAN": None   # TODO: implement
+        "LAN": message_workers.LocalNetworkWorker
     }
 
     transport_class = TRANSPORT_WORKER_MAP[args.transport]
     logging.info("Using %s message transport layer", args.transport)
-    hw_monitor = hwmonitorGUI.MainWindow(transport_class)
+    window = hwmonitorGUI.MainWindow(transport_class)
+    window.start_worker_threads()
 
     with open("style.qss") as f:
-        hw_monitor.setStyleSheet(f.read())
+        window.setStyleSheet(f.read())
 
     if args.debug:
         logging.getLogger().setLevel("DEBUG")
 
     if args.fullscreen:
-        hw_monitor.showFullScreen()
-        hw_monitor.setCursor(Qt.BlankCursor)
+        window.showFullScreen()
+        window.setCursor(Qt.BlankCursor)
 
-    hw_monitor.show()
+    window.show()
 
     res = app.exec_()
     sys.exit(res)

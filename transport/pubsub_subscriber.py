@@ -13,7 +13,10 @@ class Subscriber:
 
     def __init__(self):
         self.client = pubsub_v1.SubscriberClient()
-        self.subscription_path = self.client.subscription_path(transport.PROJECT_ID, transport.SUBSCRIPTION_ID)
+        self.subscription_path = self.client.subscription_path(
+            transport.CONFIG["transport"]["pubsub"]["project_id"],
+            transport.CONFIG["transport"]["pubsub"]["subscription_id"]
+        )
 
     def setup_streaming_pull(self, callback):
         """Continously pull messages from the topic using streming pull.

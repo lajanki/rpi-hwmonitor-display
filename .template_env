@@ -1,6 +1,0 @@
-# Fill with Pub/Sub topic and subscription names and rename the file as .env
-
-PROJECT_ID=
-TOPIC_ID=
-SUBSCRIPTION_ID=
-UPDATE_INTERVAL=2                   # update interval in seconds
