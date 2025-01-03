@@ -1,9 +1,7 @@
 import json
-import time
 from unittest.mock import patch, Mock
 
 from freezegun import freeze_time
-from pytest_schema import schema
 
 from transport import hw_stats, local_network_publisher
 from message_model import MessageModel
