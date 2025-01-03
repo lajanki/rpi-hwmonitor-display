@@ -9,7 +9,6 @@ from PyQt5.QtCore import (
 )
 
 import transport
-from transport.pubsub_subscriber import Subscriber
 
 
 logger = logging.getLogger()
@@ -17,9 +16,14 @@ logger = logging.getLogger()
 
 class PubSubWorker(QObject):
     """Worker class for Pub/Sub message thread."""
+
     update = pyqtSignal(dict)
 
     def __init__(self):
+        # Avoid importing pubbsub module if not requsted.
+        # TODO: Refactor into separate module?
+        from transport.pubsub_subscriber import Subscriber
+
         super().__init__()
         self.subscriber = Subscriber()
 

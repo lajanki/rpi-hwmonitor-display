@@ -28,9 +28,17 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     TRANSPORT_WORKER_MAP = {
-        "Pub/Sub": message_workers.PubSubWorker,
         "LAN": message_workers.LocalNetworkWorker
     }
+
+    # Only try to import the pubsub module if requested
+    if args.transport == "Pub/Sub":
+        try:
+            from google.cloud import pubsub_v1
+            TRANSPORT_WORKER_MAP["Pub/Sub"] = message_workers.PubSubWorker
+        except ModuleNotFoundError as e:
+            logging.critical("Unable to create a Pub/Sub client.")
+            raise
 
     transport_class = TRANSPORT_WORKER_MAP[args.transport]
     logging.info("Using %s message transport layer", args.transport)

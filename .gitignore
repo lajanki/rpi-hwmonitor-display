@@ -1,6 +1,8 @@
 __pycache__/
 venv/
+.venv/
 .env
+.python-version
 config.toml
 .vscode
 *.whl
