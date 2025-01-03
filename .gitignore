@@ -1,7 +1,10 @@
 __pycache__/
+build/
 venv/
 .venv/
 .env
+.pytest_cache/
+rpi_hwmonitor_display.egg-info
 .python-version
 config.toml
 .vscode
