@@ -4,15 +4,17 @@ A system hardware status monitor displaying host system's CPU, RAM and GPU stati
 [![Unit tests](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml/badge.svg?branch=main)](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml)
 
 System statistics monitored include:
- * CPU utilization
-   * System-wide percentage of CPU in use
+ * Current CPU utilization :computer:
+   * Overall CPU utilization percentage
    * 1 minute load average
-   * Number of cores with utilization > 50%
-   * Individual cpu core utilization
- * CPU and GPU overall utilization and temperatures
- * GPU and total system RAM usage
+   * Number of cores with high utilization
+   * Individual CPU core utilization
+ * CPU and GPU utilization graphs :chart_with_upwards_trend:
+ * CPU and GPU temperatures :thermometer:
+ * GPU and total system RAM usage :bar_chart:
 
-> **_NOTE_**: Only Nvidia GPUs are supported
+> [!NOTE]  
+> Only Nvidia GPUs are supported
  
 
 ![Main window](hwmonitor.png)
@@ -27,7 +29,7 @@ Then create the a topic with a subscription and a service account using `setup_p
  * fill `.template_env` with your project id and names for your Pub/Sub topic and subscription.
  * Rename the file to `.env`.
  * Source the file and create the related resources with
-    ```
+    ```shell
     source .env
     ./setup_pubsub.sh
     ```
@@ -39,17 +41,17 @@ the `GOOGLE_APPLICATION_CREDENTIALS` env variable (it can be added to your `.env
 
 ## Python setup - Linux
 Install dependencies with
-```
+```shell
 pip install -r requirements.txt
 ```
 
 ## Run
 Run the statistics poller on the host system with:
-```
+```shell
 python poller.py
 ```
 Then, run the monitor on the client (or in a different terminal) with
-```
+```shell
 python main.py
 ```
 
@@ -57,7 +59,7 @@ python main.py
 Running the poller on Windows requires some additional preparations. The library used to poll CPU statistics on Linux, `psutil`, has limited functionality on Windows. In order to retain it, polling on Windows relies on a 3rd party software, [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor). Download the monitor and run it in the background. Having it automatically start on Windows startup is recommended.
 
 Next, install Windows only dependencies with
-```
+```shell
 pip install -r requirements-win.txt
 ```
 
@@ -73,6 +75,6 @@ There is a free tier where the first 10 gigabytes of usage each month are free.
 
 ## Unit tests
 Unit tests can be run with:
-```
+```shell
 pytest
 ```

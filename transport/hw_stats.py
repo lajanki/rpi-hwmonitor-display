@@ -8,9 +8,29 @@ import pynvml
 import utils
 
 
-logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
+logger = logging.getLogger()
 
 CoreTemp = namedtuple("CoreTemp", ["label", "value"])
+
+
+NVML_AVAILABLE = True
+try:
+    pynvml.nvmlInit()
+except pynvml.NVMLError_LibraryNotFound:
+    logger.warning("NVIDIA Management Library (NVML) not detected, Disabling GPU tracking.")
+    NVML_AVAILABLE = False
+
+
+
+def get_stats():
+    """Gather various CPU, GPU and RAM statistics to a dictionary as message
+    to be published.
+    """
+    return {
+        "cpu": get_cpu_info(),
+        "ram": get_ram_info(),
+        "gpu": get_gpu_info() if NVML_AVAILABLE else utils.DEFAULT_MESSAGE["gpu"]
+    }
 
 def get_ram_info():
     """System memory usage in MB via psutil."""
@@ -27,26 +47,20 @@ def get_gpu_info():
     can be difficult to properly setup in Windows.
     https://pypi.org/project/nvidia-ml-py/
     https://docs.nvidia.com/deploy/nvml-api/index.html
-    Nvidia only.
     """
-    try:
-        pynvml.nvmlInit()
-        handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # Assume GPU is at index 0
-        mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-        util_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
-        temp_info = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+    pynvml.nvmlInit()
+    handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # get GPU at index 0
+    mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+    util_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
+    temp_info = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
 
-        stats = {
-            "memory.used": int(mem_info.used / 10**6), # MB
-            "memory.total": int(mem_info.total / 10**6),
-            "utilization": util_info.gpu,
-            "temperature": temp_info
-        }
-        pynvml.nvmlShutdown()
-
-    except pynvml.NVMLError_LibraryNotFound as e:
-        logging.warning("Unable to load pynvml library, defaulting to empty values")
-        stats = utils.DEFAULT_MESSAGE["gpu"]
+    stats = {
+        "memory.used": int(mem_info.used / 10**6), # MB
+        "memory.total": int(mem_info.total / 10**6),
+        "utilization": util_info.gpu,
+        "temperature": temp_info
+    }
+    pynvml.nvmlShutdown()
 
     return stats
 
@@ -55,8 +69,8 @@ def get_cpu_info():
     stats = {
         "cores": {
             "utilization": list(map(int, psutil.cpu_percent(percpu=True))),
-            "frequency": [int(item.current) for item in psutil.cpu_freq(percpu=True)],  # The percpu option is only supported in Linux,
-                                                                                        # on Windows returns the same as when set to False
+            "frequency": [int(item.current) for item in psutil.cpu_freq(percpu=True)],  # The percpu attribute is only supported in Linux,
+                                                                                        # on Windows this has no effect.
             "temperature": [int(t.value) for t in _get_cpu_temps() if "Core" in t.label]
         },
         "utilization": int(psutil.cpu_percent()),

@@ -3,27 +3,27 @@ from unittest.mock import patch, Mock
 
 from pytest_schema import schema
 
-
-# Mock Google Cloud client creations before importing the main library
-with patch("google.cloud.pubsub_v1.PublisherClient"):
-    from pubsub_utils import publisher
+from transport import hw_stats
 
 
-@patch("psutil.sensors_temperatures")
-@patch("pubsub_utils.hw_stats.pynvml")
-def test_get_stats_schema(mock_pynvml, mock_sensors_temperatures):
-    """Test schema generated bu the main getter is expected."""
+@patch("transport.hw_stats.psutil")
+@patch("transport.hw_stats.pynvml")
+def test_get_stats_schema(mock_pynvml, mock_psutil):
+    """Validate the schema of the main hardware statistics extract function."""
     # Mock pynvml calls
     mock_pynvml.nvmlDeviceGetMemoryInfo.return_value = Mock(used=2*10**6, total=3*10**6)
     mock_pynvml.nvmlDeviceGetUtilizationRates.return_value = Mock(gpu=52)
     mock_pynvml.nvmlDeviceGetTemperature.return_value = 40
 
-    # Mock cpu temp call, this would return an empty dict on unsupported OS (ie. automated test environment).
-    mock_sensors_temperatures.return_value = {
+    # Mock psutil calls
+    mock_psutil.sensors_temperatures.return_value = {
         "coretemp": [Mock(label="#1", current=26), Mock(label="#2", current=28), Mock(label="#3", current=28)]
     }
+    mock_psutil.virtual_memory.return_value = Mock(total=5000, used=601, available=2000)
+    mock_psutil.getloadavg.return_value = [0.28]
 
-    stats = publisher.get_stats()
+
+    stats = hw_stats.get_stats()
     expected_schema = schema(
         {
             "cpu": {

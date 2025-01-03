@@ -1,6 +1,5 @@
 import logging
 import time
-import json
 
 import numpy as np
 from PyQt5.QtGui import QFont, QIcon, QPixmap
@@ -26,22 +25,22 @@ from PyQt5.QtWidgets import (
 )
 import pyqtgraph as pg
 
-from pubsub_utils import UPDATE_INTERVAL
-from pubsub_utils.subscriber import Subscriber
+from transport import UPDATE_INTERVAL
 import utils
 
 
-logging.basicConfig(format="%(asctime)s - %(message)s", level="INFO")
 
+logger = logging.getLogger()
 
 class MainWindow(QMainWindow):
     """Main GUI window."""
 
-    def __init__(self):
+    def __init__(self, transport_worker_class):
         super().__init__()
+        self.transport_worker_class = transport_worker_class
         self.core_window = CPUCoreWindow()
         self.init_ui()
-        self.setup_pubsub_pull()
+        self.setup_msg_pull()
 
     def init_ui(self):
         main_widget = QWidget()
@@ -222,12 +221,13 @@ class MainWindow(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    def setup_pubsub_pull(self):
+    def setup_msg_pull(self):
         """Start polling for statistics from the topic in a separate thread."""
         self.thread = QThread()
 
-        # Create a worker and move to thread
-        self.worker = PubSubWorker()
+        # Instantiate a worker and move to thread.
+        # Keep a reference to the worker to prevent garbage collection.
+        self.worker = self.transport_worker_class()
         self.worker.moveToThread(self.thread)
 
         # Connect signals and slots
@@ -297,7 +297,7 @@ class MainWindow(QMainWindow):
             # Ignore this reading if older than the latest data point in graph.
             # (Pub/Sub does not guarantee ordering by default. Fix: enable ordering?)
             if readings["timestamp"] <= old_data[0][-1]:
-                logging.warning("Discarding out-of-order item. Age: %ds", time.time() - readings["timestamp"])
+                logger.warning("Discarding out-of-order item. Age: %ds", time.time() - readings["timestamp"])
                 return
             
             x = np.append(old_data[0][1:], readings["timestamp"])
@@ -326,7 +326,7 @@ class MainWindow(QMainWindow):
 
     def empty_readings(self):
         """Emit and empty readings response to empty UI elements."""
-        logging.info("Nothing received from topic for a while, resetting charts.")
+        logger.info("Nothing received from topic for a while, resetting charts.")
         readings = utils.DEFAULT_MESSAGE
         readings["timestamp"] = time.time()
         self.update_readings(readings)
@@ -387,27 +387,8 @@ class CPUCoreWindow(QWidget):
                 style_sheet = utils.get_cpu_utilization_background_style(val)
                 qlcd.setStyleSheet(style_sheet) 
 
-class PubSubWorker(QObject):
-    """Worker class for Pub/Sub thread."""
-    update = pyqtSignal(dict)
-
-    def __init__(self):
-        super().__init__()
-        self.subscriber = Subscriber()
-
-    def process_response(self, message):
-        """Callback for streaming pull: emit message back to the main thread."""
-        readings = json.loads(message.data.decode("utf-8"))
-        readings["timestamp"] = message.publish_time.timestamp()
-        self.update.emit(readings)
-        message.ack()
-
-    def run(self):
-        self.subscriber.seek_to_time(int(time.time()))
-        self.subscriber.setup_streaming_pull(self.process_response)
-
-
 class PercentAxisItem(pg.AxisItem):
+    """Custom pyqtgraph AxisItem class with customized tick strings."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
