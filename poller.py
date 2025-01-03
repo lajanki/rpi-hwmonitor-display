@@ -26,7 +26,7 @@ if __name__ == "__main__":
     if args.transport == "Pub/Sub":
         try:
             import transport.pubsub_publisher
-            TRANSPORT_PUBLISHER_MAP["Pub/Sub"] = transport.pubsub_publisher.PubSubPublisher,
+            TRANSPORT_PUBLISHER_MAP["Pub/Sub"] = transport.pubsub_publisher.PubSubPublisher
         except ModuleNotFoundError as e:
             logging.critical("Unable to create a Pub/Sub client.")
             raise
