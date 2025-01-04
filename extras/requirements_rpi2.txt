@@ -1,5 +1,6 @@
-# This is a curated list of requirements for a Raspberry Pi 2 running Raspbian 10
-# without pub/sub support.
+# This is a curated list of requirements for a Raspberry Pi 2/Raspbian 10
+# and Python 3.11.
+# Minimal installation without pub/sub.
 
 annotated-types==0.7.0
 asttokens==3.0.0
