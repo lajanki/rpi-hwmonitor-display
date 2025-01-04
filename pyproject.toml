@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+# Use an empty package list to prevent automatic discovery
+# from trying to install subfolders as pacakges.
+[tool.setuptools]
+packages = []
+
+[project]
+name = "rpi-hwmonitor-display"
+version = "0.1.0"
+description = "System Hardware monitor"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "freezegun>=1.5.1",
+    "nvidia-ml-py>=12.560.30",
+    "psutil>=6.1.1",
+    "pydantic>=2.10.4",
+    "pyqt5>=5.15.11",
+    "pyqtgraph>=0.13.7",
+    "pytest>=8.3.4",
+    "pytest-qt>=4.4.0",
+    "python-dotenv>=1.0.1",
+    "toml>=0.10.2",
+    "wmi>=1.5.1 ; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+pubsub = [
+    "google-cloud-pubsub>=2.27.1",
+]
+
+[dependency-groups]
+dev = [
+    "freezegun>=1.5.1",
+    "ipython>=8.31.0",
+    "pytest>=8.3.4",
+    "pytest-qt>=4.4.0",
+]

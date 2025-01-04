@@ -32,10 +32,10 @@ and rename the file to `config.toml`. Optionally, the TCP port number can also b
 ### Python setup
 Install dependencies with
 ```shell
-pip install -r requirements.txt
+pip install .
 ```
 
-### Note in PyQt5 installation
+### Note on PyQt5 installation
 The user interface is based on the Qt framework (version 5). Installing the Python bindings for `PyQt5` can be a bit challenging,
 particuarly for on a Raspberry Pi as it has to be compiled from source. Building from the source includes a hidden
 prompt for accepting its GPL license. The above pip install command may hang, and eventually be killed, due to this step.
@@ -50,7 +50,7 @@ https://www.riverbankcomputing.com/static/Docs/PyQt5/installation.html#installin
 for more information.
 
 > [!NOTE]  
-> On an older Raspberry Pi model this may take several hours!
+> On an older Raspberry Pi model compilation may take several hours!
 
 
 ## Run
@@ -74,15 +74,12 @@ Running the poller on Windows requires some additional preparations. The library
 Download the monitor and run it in the background.
 Having it automatically start on Windows startup is recommended.
 
-Then, install Windows only dependencies with
-```shell
-pip install -r requirements-win.txt
-```
-
-You can now run `poller.py` with the above command.
-
 ## Unit tests
-Unit tests can be run with:
+Unit tests can be run by installing dev dependencies:
+```shell
+pip install .[dev]
+```
+and then running `pytest`:
 ```shell
 pytest
 ```
@@ -97,7 +94,7 @@ To setup the Google Cloud infrastructure you need:
  * a [Google Cloud project](https://cloud.google.com/) with Pub/Sub enabled.
  * [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) with `gcloud` command line tool.
 
-Then create the a topic with a subscription and a service account with the setup script `extras/setup_pubsub.sh`:
+Create a Pub/Sub topic with a subscription and a service account with the setup script `extras/setup_pubsub.sh`:
 ```shell
 cd extras
 ./setup_pubsub.sh
@@ -107,9 +104,13 @@ This will also download a json key for the service account and set the `GOOGLE_A
 env variable in `extras/.env` which will be used to auhenticate to Google Cloud.
  * https://cloud.google.com/docs/authentication/application-default-credentials
 
+Then, install Pub/Sub related dependencies with:
+```shell
+pip install .[pubsub]
+```
 
-To run the poller and the server using Pub/Sub as transport, pass `--transport Pub/Sub` as an argument to both
-files.
+Finally, in order to run the poller and the server using Pub/Sub as transport, pass `--transport Pub/Sub` as an argument
+to both invocations.
 
 
 ### Pub/Sub pricing
