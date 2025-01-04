@@ -35,7 +35,7 @@ Install dependencies with
 pip install .
 ```
 
-### Note in PyQt5 installation
+### Note on PyQt5 installation
 The user interface is based on the Qt framework (version 5). Installing the Python bindings for `PyQt5` can be a bit challenging,
 particuarly for on a Raspberry Pi as it has to be compiled from source. Building from the source includes a hidden
 prompt for accepting its GPL license. The above pip install command may hang, and eventually be killed, due to this step.
