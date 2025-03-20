@@ -20,7 +20,7 @@ if __name__ == "__main__":
         "--transport",
         choices=["LAN", "Pub/Sub"],
         default="LAN",
-        help="transport layer to use for passing hardware readings between client and server.",
+        help="transport layer to use for passing hardware readings between client and server. Defaults to LAN",
     )
 
     args = parser.parse_args()

@@ -26,8 +26,16 @@ System statistics monitored include:
 
 
 ## Setup
-To setup the network connection, add the server system's (the monitor) local IP address or hostname to `config.tmpl.toml`
-and rename the file to `config.toml`. Optionally, the TCP port number can also be configured. 
+In order to setup network connection between the client and the server, create a configuration file and specify the
+server's (ie. the device running the monitor) local IP address:
+```shell
+cp config.tmpl.toml config.toml
+```
+```toml
+[transport.socket]
+host="192.168.100.4"
+```
+Optionally, the TCP port number can also be configured. 
 
 ### Python setup
 Install dependencies with
@@ -36,15 +44,17 @@ pip install .
 ```
 
 ### Note on PyQt5 installation
-The user interface is based on the Qt framework (version 5). Installing the Python bindings for `PyQt5` can be a bit challenging,
-particuarly for on a Raspberry Pi as it has to be compiled from source. Building from the source includes a hidden
-prompt for accepting its GPL license. The above pip install command may hang, and eventually be killed, due to this step.
+The user interface is based on the Qt framework (version 5). Installing the Python bindings for `PyQt5` on a Raspberry Pi
+can be a bit challenging, as it has to be compiled from source. Building from the source includes a hidden
+prompt for accepting its GPL license. The above `pip` install command may hang, and eventually be killed, due to this step.
 
-To pass this prompt, install PyQt5, and its dependencies, with:
+To pass this prompt, first install PyQt5 only with:
 
 ```shell
-pip -v install --config-settings --confirm-license= PyQt5
+pip -v install --config-settings --confirm-license= PyQt5==5.15
 ```
+And then continue with the remaining dependencies with the command above.
+
 See,
 https://www.riverbankcomputing.com/static/Docs/PyQt5/installation.html#installing-the-gpl-version
 for more information.
