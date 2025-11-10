@@ -78,7 +78,7 @@ Then, run the statistics poller on the client (or simply from another terminal w
 uv run --frozen poller.py
 ```
 
-> [!HINT]  
+> [!TIP]  
 > For development purposes the TCP host can also be provided as a command line argument `--host` to both scripts.
 
 
