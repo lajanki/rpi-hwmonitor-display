@@ -1,12 +1,12 @@
 # rpi-hwmonitor-display
-A client-server model system hardware status monitor.
+A Raspberry Pi client-server model hardware status monitor.
 
 ![Main window](hwmonitor.png)
 
 
 [![Unit tests](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml/badge.svg?branch=main)](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml)
 
-Displays client system's CPU, (Nvidia) GPU and memory usage statistics on a separate server device. Built with a Raspberry Pi as the server.
+Displays client system's CPU, GPU (Nvidia) and RAM usage statistics on a separate server device. Built with a Raspberry Pi as the server.
 
 Hardware readings are periodically collected from the client and sent to the server via a TCP socket over a local network.
 
@@ -24,7 +24,6 @@ System statistics monitored include:
 > Only Nvidia GPUs are supported
  
 
-
 ## Setup
 In order to setup network connection between the client and the server, create a configuration file and specify the
 server's (ie. the device running the monitor) local IP address:
@@ -34,30 +33,35 @@ cp config.tmpl.toml config.toml
 ```toml
 [transport.socket]
 host="192.168.100.4"
+port=65432
 ```
-Optionally, the TCP port number can also be configured. 
+The TCP port number can also be configured as needed. 
 
 ### Python setup
+The Python project is managed with `uv`
+ * https://docs.astral.sh/uv/
+
 Install dependencies with
 ```shell
-pip install .
+uv sync
 ```
 
 ### Note on PyQt5 installation
-The user interface is based on the Qt framework (version 5). Installing the Python bindings for `PyQt5` on a Raspberry Pi
+The user interface is built on the Qt framework. Installing the Python bindings for `PyQt5` on a Raspberry Pi
 can be a bit challenging, as it has to be compiled from source. Building from the source includes a hidden
-prompt for accepting its GPL license. The above `pip` install command may hang, and eventually be killed, due to this step.
+prompt for accepting its GPL license. The above install command may hang, and eventually be killed, due to this step.
 
-To pass this prompt, first install PyQt5 only with:
+To pass this prompt, install the dependencies instead with
 
 ```shell
-pip -v install --config-settings --confirm-license= PyQt5==5.15
+uv sync --no-install-package PyQt5-Qt5 --config-settings="--confirm-license="
 ```
-And then continue with the remaining dependencies with the command above.
+This will ignore the binary-only package `PyQt5-Qt5` which contains a `Qt` installation and is not needed
+when building from source.
 
-See,
-https://www.riverbankcomputing.com/static/Docs/PyQt5/installation.html#installing-the-gpl-version
-for more information.
+See the PyQt documentation for more installation instructions:
+https://www.riverbankcomputing.com/static/Docs/PyQt5/installation.html
+
 
 > [!NOTE]  
 > On an older Raspberry Pi model compilation may take several hours!
@@ -66,13 +70,17 @@ for more information.
 ## Run
 First, start the monitor process on the server with:
 ```shell
-python main.py
+uv run --frozen main.py
 ```
 
-Then, run the statistics poller on the client (or sinply from another terminal window) with:
+Then, run the statistics poller on the client (or simply from another terminal window) with:
 ```shell
-python poller.py
+uv run --frozen poller.py
 ```
+
+> [!TIP]  
+> For development purposes the TCP host can also be provided as a command line argument `--host` to both scripts.
+
 
 ![Network](network.drawio.png)
 
@@ -85,13 +93,9 @@ Download the monitor and run it in the background.
 Having it automatically start on Windows startup is recommended.
 
 ## Unit tests
-Unit tests can be run by installing dev dependencies:
+Unit tests can be run with:
 ```shell
-pip install .[dev]
-```
-and then running `pytest`:
-```shell
-pytest
+uv run pytest
 ```
 
 
@@ -116,7 +120,7 @@ env variable in `extras/.env` which will be used to auhenticate to Google Cloud.
 
 Then, install Pub/Sub related dependencies with:
 ```shell
-pip install .[pubsub]
+uv sync --extra pubsub
 ```
 
 Finally, in order to run the poller and the server using Pub/Sub as transport, pass `--transport Pub/Sub` as an argument

@@ -5,12 +5,11 @@ import os
 import psutil
 import pynvml
 
-from message_model import MessageModel
+import message_models
 
 
 logger = logging.getLogger()
 
-CoreTemp = namedtuple("CoreTemp", ["label", "value"])
 
 
 NVML_AVAILABLE = True
@@ -23,86 +22,94 @@ except pynvml.NVMLError_LibraryNotFound:
 
 
 def get_stats():
-    """Gather various CPU, GPU and RAM readings to pydantic model as message
-    to be published.
-    Return:
-        pydantic MessageModel of the harware readings
-    """
-    data = {
-        "cpu": get_cpu_info(),
-        "ram": get_ram_info(),
-        "gpu": get_gpu_info() if NVML_AVAILABLE else MessageModel().gpu.model_dump()
-    }
-    return MessageModel(**data)
+    """Wrapper function for collecting individual hardware readings as 
+    message to be published.
 
-def get_ram_info():
-    """Get system memory usage via psutil.
     Return:
-        a dictionary
+        pydantic MessageModel of the hardware readings
+    """
+    return message_models.MessageModel(
+        cpu=_get_cpu_info(),
+        ram=_get_ram_info(),
+        gpu=_get_gpu_info()
+    )
+
+def _get_ram_info() -> message_models.RAMInfo:
+    """Get system memory usage via psutil.
+
+    Return:
+        a RAMInfo pydantic model
     """
     mem = psutil.virtual_memory()
-    return {
-        "total": int(mem.total / 10**6),
-        "used": int(mem.used / 10**6),
-        "available": int(mem.available / 10**6)
-    }
+    return message_models.RAMInfo(
+        total=int(mem.total / 10**6),
+        used=int(mem.used / 10**6),
+        available=int(mem.available / 10**6)
+    )
 
-def get_gpu_info():
+def _get_gpu_info() -> message_models.GPUInfo:
     """Get GPU usage statistics using Nvidia management libary (NVML).
-    Adapted from gpustat (https://pypi.org/project/gpustat/); this library
-    can be difficult to properly setup in Windows.
+    Adapted from gpustat (https://pypi.org/project/gpustat/)
     https://pypi.org/project/nvidia-ml-py/
     https://docs.nvidia.com/deploy/nvml-api/index.html
+
     Return:
-        a dictionary
+        a GPUInfo pydantic model
     """
+    # Returna default empty message if NVML is not available
+    if not NVML_AVAILABLE:
+        return message_models.GPUInfo()
+
     pynvml.nvmlInit()
     handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # get GPU at index 0
     mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
     util_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
     temp_info = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
 
-    stats = {
-        "mem_used": int(mem_info.used / 10**6), # MB
-        "mem_total": int(mem_info.total / 10**6),
-        "utilization": util_info.gpu,
-        "temperature": temp_info
-    }
     pynvml.nvmlShutdown()
 
-    return stats
+    return message_models.GPUInfo(
+        mem_used= int(mem_info.used / 10**6),
+        mem_total= int(mem_info.total / 10**6),
+        utilization= util_info.gpu,
+        temperature= temp_info
+    )
 
-def get_cpu_info():
+def _get_cpu_info() -> message_models.CPUInfo:
     """Get CPU usage statistics via psutil.
+
     Return:
-        a dictionary
+        a CPUInfo pydantic model
     """
-    stats = {
-        "cores": {
-            "utilization": list(map(int, psutil.cpu_percent(percpu=True))),
-            "frequency": [int(item.current) for item in psutil.cpu_freq(percpu=True)],  # The percpu attribute is only supported in Linux,
-                                                                                        # on Windows this has no effect.
-            "temperature": [int(t.value) for t in _get_cpu_temps() if "Core" in t.label]
-        },
-        "utilization": int(psutil.cpu_percent()),
-        "frequency": int(psutil.cpu_freq().current),
-        "temperature":  int(_get_cpu_temps()[-1].value),
-        "1_min_load_average": psutil.getloadavg()[0],
-        "num_high_load_cores": len([c for c in psutil.cpu_percent(percpu=True) if c > 50])
-    }
+    return message_models.CPUInfo(
+        cores=message_models.CPUCoreInfo(
+            utilization=list(map(int, psutil.cpu_percent(percpu=True))),
+            frequency=[int(item.current) for item in psutil.cpu_freq(percpu=True)],
+            temperature=[int(t.value) for t in _get_cpu_temps() if "Core" in t.label]
+        ),
+        utilization=int(psutil.cpu_percent()),
+        frequency=int(psutil.cpu_freq().current),
+        temperature=int(_get_cpu_temps()[-1].value), # assume last reading is CPU package temp
+        load_average_1min=psutil.getloadavg()[0],
+        num_high_load_cores=len([c for c in psutil.cpu_percent(percpu=True) if c > 50])
+    )
 
-    return stats
-
-def _get_cpu_temps():
+def _get_cpu_temps() -> list[namedtuple]:
     """Get CPU temperature using either psutil (Linux) or
     wmi (Windows Management Instrumentation) and LibreHardwareMonitor (Windows).
     On Windows this requires Open Hardware Monitor running in the background.
         http://timgolden.me.uk/python/wmi/index.html
         https://github.com/LibreHardwareMonitor/LibreHardwareMonitor
+
     Return:
         A list of CoreTemp named tuples. One element for each core and one for
         the whole CPU unit.
     """
+
+    # Common container for storing temperature readings
+    # regardless of platform.
+    CoreTemp = namedtuple("CoreTemp", ["label", "value"])
+
     if os.name == "nt":
         import wmi
         w = wmi.WMI(namespace=r"root\LibreHardwareMonitor")
@@ -114,7 +121,8 @@ def _get_cpu_temps():
         temps = psutil.sensors_temperatures()["coretemp"]
         values = [CoreTemp(t.label, t.current) for t in temps]
     
-    # Sort by core label (total CPU first). This will NOT sort by
-    # numeric index but rather ensure result will always be in he same order.
+    # Sort by core label to ensure consistent order.
+    # this will sort core specific readings first and package last.
+    # E.g., "Core 0", "Core 1, ..., "Package id 0"
     values.sort(key=lambda c: c.label)
     return values

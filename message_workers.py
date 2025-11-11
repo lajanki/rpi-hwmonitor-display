@@ -62,7 +62,9 @@ class LocalNetworkWorker(QObject):
             with conn:
                 logger.info("Connected by %s", addr)
                 while True:
-                    data = conn.recv(1024) # Note: we're assuming a single (json) message fits into 1024 bytes! (TODO?)
+                    # Read 1024 bytes;
+                    # we're assuming a single message fits into this buffer.
+                    data = conn.recv(1024)
                     readings = json.loads(data.decode("utf-8"))
                     self.update.emit(readings)
 
