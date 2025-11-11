@@ -6,7 +6,7 @@ import socket
 import transport
 from transport import hw_stats
 from transport.base_publisher import BasePublisher
-from message_model import MessageModel
+from message_models import MessageModel
 
 
 logger = logging.getLogger()

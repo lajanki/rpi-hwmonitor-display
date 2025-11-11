@@ -8,6 +8,3 @@ rpi_hwmonitor_display.egg-info
 .python-version
 config.toml
 .vscode
-*.whl
-*.pyc
-

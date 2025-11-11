@@ -7,9 +7,13 @@ from PyQt5.QtWidgets import QApplication
 
 import hwmonitorGUI
 import message_workers
+import transport
 
 
-logging.basicConfig(format="%(asctime)s - %(filename)s - %(levelname)s - %(message)s", level="INFO")
+logging.basicConfig(
+    format="%(asctime)s - %(filename)s - %(levelname)s - %(message)s",
+    level="INFO"
+)
 
 
 if __name__ == "__main__":
@@ -22,10 +26,15 @@ if __name__ == "__main__":
         default="LAN",
         help="transport layer to use for passing hardware readings between client and server. Defaults to LAN",
     )
+    parser.add_argument("--host", type=str, help="Socket host config ip value for LAN transport")
 
     args = parser.parse_args()
 
     app = QApplication(sys.argv)
+
+    # Override config host value if provided
+    if args.host:
+        transport.CONFIG["transport"]["socket"]["host"] = args.host
 
     TRANSPORT_WORKER_MAP = {
         "LAN": message_workers.LocalNetworkWorker
