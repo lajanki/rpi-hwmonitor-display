@@ -1,6 +1,7 @@
-from collections import namedtuple
+import atexit
 import logging
 import os
+from collections import namedtuple
 
 import psutil
 import pynvml
@@ -12,14 +13,20 @@ logger = logging.getLogger()
 
 CoreTemp = namedtuple("CoreTemp", ["label", "value"])
 
-
 NVML_AVAILABLE = True
+nvml_device_handle = None
 try:
     pynvml.nvmlInit()
+    # Try to get the first GPU handle now and keep it cached
+    nvml_device_handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+    # Shutdown NVML when the process exits
+    atexit.register(pynvml.nvmlShutdown)
 except pynvml.NVMLError_LibraryNotFound:
     logger.warning("NVIDIA Management Library (NVML) not detected, Disabling GPU tracking.")
     NVML_AVAILABLE = False
-
+except pynvml.NVMLError as e:
+    logger.warning("NVML initialization failed: %s. Disabling GPU tracking.", e)
+    NVML_AVAILABLE = False
 
 
 def get_stats():
@@ -56,21 +63,21 @@ def get_gpu_info():
     Return:
         a dictionary
     """
-    pynvml.nvmlInit()
-    handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # get GPU at index 0
-    mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-    util_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
-    temp_info = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+    # Returna default empty message if NVML is not available
+    if not NVML_AVAILABLE:
+        return message_models.GPUInfo()
 
-    stats = {
-        "mem_used": int(mem_info.used / 10**6), # MB
-        "mem_total": int(mem_info.total / 10**6),
-        "utilization": util_info.gpu,
-        "temperature": temp_info
-    }
-    pynvml.nvmlShutdown()
+    global nvml_device_handle
+    mem_info = pynvml.nvmlDeviceGetMemoryInfo(nvml_device_handle)
+    util_info = pynvml.nvmlDeviceGetUtilizationRates(nvml_device_handle)
+    temp_info = pynvml.nvmlDeviceGetTemperature(nvml_device_handle, pynvml.NVML_TEMPERATURE_GPU)
 
-    return stats
+    return message_models.GPUInfo(
+        mem_used=int(mem_info.used / 10**6),
+        mem_total=int(mem_info.total / 10**6),
+        utilization=util_info.gpu,
+        temperature=temp_info
+    )
 
 def get_cpu_info():
     """Get CPU usage statistics via psutil.
