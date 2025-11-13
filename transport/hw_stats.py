@@ -42,8 +42,8 @@ def try_get_gpu_handle():
     logging.warning("Couldn't initialize GPU, Disabling GPU tracking.")
     return None
 
-handle_config = try_get_gpu_handle()
 
+handle_config = try_get_gpu_handle()
 
 
 def get_stats():

@@ -2,6 +2,8 @@ from unittest.mock import patch, MagicMock
 import importlib
 import pytest
 
+import amdsmi
+
 from transport import hw_stats
 import message_models
 
@@ -72,3 +74,34 @@ def test_get_nvidia_gpu_info(mock_pynvml, gpuinfo_mock, monkeypatch):
         temperature=70
     )
     assert result == gpuinfo_mock.return_value
+
+@patch("atexit.register")
+def test_try_get_gpu_handle(mock_register):
+    """Test try_get_gpu_handle on multiple platform/library support combinations."""
+
+    # amdsmi available: should return AMD handle
+    with patch("transport.hw_stats.amdsmi") as mock_amdsmi:
+        mock_handle = MagicMock()
+        mock_amdsmi.amdsmi_get_processor_handles.return_value = [mock_handle]
+
+        vendor, handle = hw_stats.try_get_gpu_handle()
+        mock_register.is_called_with(mock_amdsmi.amdsmi_shut_down)
+        assert vendor == "AMD"
+        assert handle == mock_handle
+
+    # amdmsi not available, pynvml is available: should return NVIDIA handle
+    with patch("transport.hw_stats.pynvml") as mock_pynvml:
+        with patch("transport.hw_stats.amdsmi.amdsmi_init", side_effect=amdsmi.AmdSmiException):
+            mock_handle = MagicMock()
+            mock_pynvml.nvmlDeviceGetHandleByIndex.return_value = mock_handle
+    
+            vendor, handle = hw_stats.try_get_gpu_handle()
+            mock_register.is_called_with(mock_pynvml.nvmlShutdown)
+            assert vendor == "NVIDIA"
+            assert handle == mock_handle
+
+    # neither library available: should return None
+    with patch("transport.hw_stats.amdsmi.amdsmi_init", side_effect=amdsmi.AmdSmiException):
+        with patch("transport.hw_stats.pynvml.nvmlInit", side_effect=mock_pynvml.NVMLError_LibraryNotFound):
+            result = hw_stats.try_get_gpu_handle()
+            assert result is None
