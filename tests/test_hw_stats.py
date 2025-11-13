@@ -1,4 +1,5 @@
 from unittest.mock import patch, MagicMock
+import importlib
 import pytest
 
 from transport import hw_stats
@@ -15,6 +16,8 @@ def gpuinfo_mock(monkeypatch):
 
 @patch("transport.hw_stats.psutil.virtual_memory")
 def test_get_ram_info(mock_virtual_memory):
+    """Simple _get_ram_info test."""
+
     # Setup mock return value
     mock_mem = MagicMock()
     mock_mem.total = 8_000_000_000
@@ -28,14 +31,26 @@ def test_get_ram_info(mock_virtual_memory):
     assert result.used == 4000
     assert result.available == 3500
 
-def test_nvml_not_available(gpuinfo_mock, monkeypatch):
-    monkeypatch.setattr("transport.hw_stats.NVML_AVAILABLE", False)
+def test_graphics_handle_not_available(gpuinfo_mock, monkeypatch):
+    """If pynvml cannot be initialized, _get_gpu_info should return an empty GPUInfo model."""
+    monkeypatch.setattr("transport.hw_stats.handle_config", None)
     result = hw_stats._get_gpu_info()
     gpuinfo_mock.assert_called_once_with()
     assert result == gpuinfo_mock.return_value
 
-def test_nvml_available(gpuinfo_mock, monkeypatch):
-    mock_pynvml = MagicMock()
+@patch("transport.hw_stats._get_nvidia_gpu_info")
+def test_nvml_available(mock_get_nvidia_gpu_info, monkeypatch):
+    """If pynvml is available, _get_nvidia_gpu_info should be used for GPU stats."""
+    mock_device_handle = MagicMock()
+
+    monkeypatch.setattr("transport.hw_stats.handle_config", ("NVIDIA", mock_device_handle))
+    result = hw_stats._get_gpu_info()
+
+    mock_get_nvidia_gpu_info.assert_called_once_with(mock_device_handle)
+
+@patch("transport.hw_stats.pynvml")
+def test_get_nvidia_gpu_info(mock_pynvml, gpuinfo_mock, monkeypatch):
+    """If pynvml is available, _get_gpu_info should return a valid GPUInfo model."""
     mock_mem_info = MagicMock()
     mock_mem_info.used = 2000000000
     mock_mem_info.total = 4000000000
@@ -47,11 +62,9 @@ def test_nvml_available(gpuinfo_mock, monkeypatch):
     mock_pynvml.nvmlDeviceGetUtilizationRates.return_value = mock_util_info
     mock_pynvml.nvmlDeviceGetTemperature.return_value = mock_temp_info
 
-    monkeypatch.setattr("transport.hw_stats.pynvml", mock_pynvml)
-    monkeypatch.setattr("transport.hw_stats.NVML_AVAILABLE", True)
-    monkeypatch.setattr("transport.hw_stats.nvml_device_handle", "dummy_handle")
+    mock_device_handle = MagicMock()
+    result = hw_stats._get_nvidia_gpu_info(mock_device_handle)
 
-    result = hw_stats._get_gpu_info()
     gpuinfo_mock.assert_called_once_with(
         mem_used=2000,
         mem_total=4000,
