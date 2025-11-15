@@ -10,6 +10,11 @@ import amdsmi
 import message_models
 
 
+GPU_DEVICE_HANDLE_LOADED = False
+handle_config = None
+
+logger = logging.getLogger()
+
 
 def try_get_gpu_handle():
     """Try to get AMD GPU handle using AMD SMI library.
@@ -18,33 +23,29 @@ def try_get_gpu_handle():
         AMD GPU handle if available, else None
     """
     try:
-        logging.info("Trying to initialize AMD SMI library...")
+        logger.info("Trying to initialize AMD SMI library...")
         amdsmi.amdsmi_init() 
         handle = amdsmi.amdsmi_get_processor_handles()[0]
         atexit.register(amdsmi.amdsmi_shut_down)
-        logging.info("Success!")
+        logger.info("Success!")
         return "AMD", handle
     except amdsmi.AmdSmiException as e:
-        logging.warning("AMD SMI initialization failed.")
+        logger.warning("AMD SMI initialization failed.")
 
     try:
-        logging.info("Trying to initialize Nvidia SMI library...")
+        logger.info("Trying to initialize Nvidia SMI library...")
         pynvml.nvmlInit()
         handle = pynvml.nvmlDeviceGetHandleByIndex(0)
         atexit.register(pynvml.nvmlShutdown)
-        logging.info("Success!")
+        logger.info("Success!")
         return "NVIDIA", handle
     except pynvml.NVMLError_LibraryNotFound:
-        logging.warning("NVIDIA Management Library (NVML) not detected.")
+        logger.warning("NVIDIA Management Library (NVML) not detected.")
     except pynvml.NVMLError as e:
-        logging.warning("NVML initialization failed.")
+        logger.warning("NVML initialization failed.")
 
-    logging.warning("Couldn't initialize GPU, Disabling GPU tracking.")
+    logger.warning("Couldn't initialize GPU, Disabling GPU tracking.")
     return None
-
-
-handle_config = try_get_gpu_handle()
-
 
 def get_stats():
     """Wrapper function for collecting individual hardware readings as 
@@ -75,9 +76,18 @@ def _get_ram_info() -> message_models.RAMInfo:
 def _get_gpu_info() -> message_models.GPUInfo:
     """Get usage statistics.
 
+    On first call, tries to initialize a GPU handle using
+    try_get_gpu_handle(). Subsequent calls will use the cached handle.
+
     Return:
         a GPUInfo pydantic model
     """
+    # initialize a device handle on first call
+    global handle_config, GPU_DEVICE_HANDLE_LOADED
+    if not GPU_DEVICE_HANDLE_LOADED:
+        handle_config = try_get_gpu_handle()
+        GPU_DEVICE_HANDLE_LOADED = True
+
     # Return empty model if no GPU handle could be obtained
     if not handle_config:
         return message_models.GPUInfo()

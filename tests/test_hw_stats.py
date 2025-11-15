@@ -33,26 +33,48 @@ def test_get_ram_info(mock_virtual_memory):
     assert result.used == 4000
     assert result.available == 3500
 
-def test_graphics_handle_not_available(gpuinfo_mock, monkeypatch):
-    """If pynvml cannot be initialized, _get_gpu_info should return an empty GPUInfo model."""
-    monkeypatch.setattr("transport.hw_stats.handle_config", None)
+@patch("transport.hw_stats.try_get_gpu_handle")
+def test_graphics_handle_not_available(mock_get_gpu_handle, gpuinfo_mock):
+    """If a gprahics library cannot be initialized,
+    _get_gpu_info should return an empty GPUInfo model.
+    """
+    mock_get_gpu_handle.return_value = None
     result = hw_stats._get_gpu_info()
     gpuinfo_mock.assert_called_once_with()
     assert result == gpuinfo_mock.return_value
+
+def test_gpu_handle_not_loaded_twice(monkeypatch):
+    """_get_gpu_info should only attempt to load the GPU handle
+    on first call.
+    """
+    monkeypatch.setattr("transport.hw_stats.GPU_DEVICE_HANDLE_LOADED", False)
+
+    with patch("transport.hw_stats.try_get_gpu_handle") as mock_get_gpu_handle:
+        # First call: should attempt to load handle
+        mock_get_gpu_handle.return_value = None
+        hw_stats._get_gpu_info()
+        mock_get_gpu_handle.assert_called_once()
+
+        mock_get_gpu_handle.reset_mock()
+
+        # Second call: should NOT attempt to load handle again
+        hw_stats._get_gpu_info()
+        mock_get_gpu_handle.assert_not_called()
 
 @patch("transport.hw_stats._get_nvidia_gpu_info")
 def test_nvml_available(mock_get_nvidia_gpu_info, monkeypatch):
     """If pynvml is available, _get_nvidia_gpu_info should be used for GPU stats."""
     mock_device_handle = MagicMock()
 
+    monkeypatch.setattr("transport.hw_stats.GPU_DEVICE_HANDLE_LOADED", True)
     monkeypatch.setattr("transport.hw_stats.handle_config", ("NVIDIA", mock_device_handle))
-    result = hw_stats._get_gpu_info()
+    hw_stats._get_gpu_info()
 
     mock_get_nvidia_gpu_info.assert_called_once_with(mock_device_handle)
 
 @patch("transport.hw_stats.pynvml")
-def test_get_nvidia_gpu_info(mock_pynvml, gpuinfo_mock, monkeypatch):
-    """If pynvml is available, _get_gpu_info should return a valid GPUInfo model."""
+def test_get_nvidia_gpu_info(mock_pynvml, gpuinfo_mock):
+    """_get_nvidia_gpu_info should return a valid GPUInfo model."""
     mock_mem_info = MagicMock()
     mock_mem_info.used = 2000000000
     mock_mem_info.total = 4000000000
