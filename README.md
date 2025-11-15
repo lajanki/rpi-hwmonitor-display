@@ -54,7 +54,7 @@ prompt for accepting its GPL license. The above install command may hang, and ev
 To pass this prompt, install the dependencies instead with
 
 ```shell
-uv sync --no-install-package PyQt5-Qt5 --config-settings="--confirm-license="
+uv sync --no-install-package PyQt5-Qt5 --config-settings-package "PyQt5:--confirm-license="
 ```
 This will ignore the binary-only package `PyQt5-Qt5` which contains a `Qt` installation and is not needed
 when building from source.
@@ -70,12 +70,12 @@ https://www.riverbankcomputing.com/static/Docs/PyQt5/installation.html
 ## Run
 First, start the monitor process on the server with:
 ```shell
-uv run --frozen main.py
+uv run --no-sync main.py
 ```
 
 Then, run the statistics poller on the client (or simply from another terminal window) with:
 ```shell
-uv run --frozen poller.py
+uv run --no-sync poller.py
 ```
 
 > [!TIP]  
