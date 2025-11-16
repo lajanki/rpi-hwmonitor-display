@@ -7,6 +7,7 @@ import transport.local_network_publisher
 
 logging.basicConfig(
     format="%(asctime)s - %(filename)s - %(levelname)s - %(message)s",
+    datefmt='%H:%M:%S',
     level="INFO"
 )
 
@@ -19,9 +20,17 @@ if __name__ == "__main__":
         default="LAN",
         help="transport layer to use for publishing hardware readings.",
     )
-    parser.add_argument("--host", type=str, help="Socket host config ip value for LAN transport")
-
+    parser.add_argument("--host", help="Socket host config ip value for LAN transport")
+    parser.add_argument("--print-metrics", help="Print hardware metrics to console", action="store_true")
     args = parser.parse_args()
+
+    if args.print_metrics:
+        import transport.hw_stats
+
+        stats = transport.hw_stats.get_stats()
+        print(stats.model_dump_json(indent=4))
+        print(f"Size: {len(stats.model_dump_json().encode())}B")
+        exit(0)
 
     # Override config host value if provided
     if args.host:

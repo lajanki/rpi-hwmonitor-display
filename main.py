@@ -12,6 +12,7 @@ import transport
 
 logging.basicConfig(
     format="%(asctime)s - %(filename)s - %(levelname)s - %(message)s",
+    datefmt='%H:%M:%S',
     level="INFO"
 )
 
