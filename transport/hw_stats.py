@@ -12,6 +12,7 @@ try: import amdsmi;
 except (ImportError, KeyError): pass
 
 import message_models
+from transport.exceptions import DummyAmdSmiException
 
 
 GPU_DEVICE_HANDLE_LOADED = False
@@ -36,7 +37,7 @@ def try_get_gpu_handle():
         return "AMD", handle
     except NameError:
         logger.error("amdsmi library not detected.")
-    except amdsmi.AmdSmiException as e:
+    except (amdsmi.AmdSmiException, DummyAmdSmiException):
         logger.warning("AMD SMI initialization failed.")
 
     try:
