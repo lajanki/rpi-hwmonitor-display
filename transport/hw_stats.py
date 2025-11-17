@@ -8,8 +8,8 @@ import pynvml
 
 # The amdsmi module is importable only if the AMD SMI library is installed.
 # https://rocm.docs.amd.com/projects/amdsmi/en/latest/install/install.html
-try: import amdsmi;
-except (ImportError, KeyError): pass
+try: import amdsmi; AMDSMI_IMPORTED = True
+except (ImportError, KeyError): AMDSMI_IMPORTED = False
 
 import message_models
 from transport.exceptions import DummyAmdSmiException

@@ -96,6 +96,7 @@ def test_get_nvidia_gpu_info(mock_pynvml, gpuinfo_mock):
     )
     assert result == gpuinfo_mock.return_value
 
+@pytest.mark.skipif(not hw_stats.AMDSMI_IMPORTED, reason="amdsmi module not available")
 @patch("atexit.register")
 def test_try_get_gpu_handle(mock_register):
     """Test try_get_gpu_handle on multiple platform/library support combinations."""
@@ -115,7 +116,7 @@ def test_try_get_gpu_handle(mock_register):
         with patch("transport.hw_stats.amdsmi.amdsmi_init", side_effect=DummyAmdSmiException):
             mock_handle = MagicMock()
             mock_pynvml.nvmlDeviceGetHandleByIndex.return_value = mock_handle
-    
+
             vendor, handle = hw_stats.try_get_gpu_handle()
             mock_register.is_called_with(mock_pynvml.nvmlShutdown)
             assert vendor == "NVIDIA"
