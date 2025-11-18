@@ -58,15 +58,22 @@ class LocalNetworkWorker(QObject):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((HOST, PORT))
             s.listen(0)
-            conn, addr = s.accept()
-            with conn:
-                logger.info("Connected by %s", addr)
-                while True:
-                    # Read 1024 bytes;
-                    # we're assuming a single message fits into this buffer.
-                    data = conn.recv(1024)
-                    readings = json.loads(data.decode("utf-8"))
-                    self.update.emit(readings)
 
-                    if not data:
-                        break
+            logger.info("Listening for connections on %s:%s", HOST, PORT)
+            while True:
+                conn, addr = s.accept()
+                with conn:
+                    logger.info("Connected by %s", addr)
+                    while True:
+                        # Read 1024 bytes;
+                        # we're assuming a single message fits into this buffer.
+                        data = conn.recv(1024)
+
+                        # If no data, the client has closed the connection.
+                        # Drop back to listening for new connections.
+                        if not data:
+                            logger.info("Client disconnected")
+                            break
+
+                        readings = json.loads(data.decode("utf-8"))
+                        self.update.emit(readings)

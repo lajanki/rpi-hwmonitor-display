@@ -32,9 +32,6 @@ class LocalNetworkPublisher(BasePublisher):
                 while True:
                     data = hw_stats.get_stats().model_dump_json().encode()
                     s.send(data)
-                
-                    # Print statistics overwriting previous line
-                    print(f"bytes sent: {len(data)}", end="\r")
                     time.sleep(REFRESH_INTERVAL)
 
             except KeyboardInterrupt:
