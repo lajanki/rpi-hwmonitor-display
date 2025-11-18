@@ -1,25 +1,59 @@
-from collections import namedtuple
+import atexit
 import logging
 import os
+from collections import namedtuple
 
 import psutil
 import pynvml
 
-import message_models
+# The amdsmi module is importable only if the AMD SMI library is installed.
+# https://rocm.docs.amd.com/projects/amdsmi/en/latest/install/install.html
+try: import amdsmi; AMDSMI_IMPORTED = True
+except (ImportError, KeyError): AMDSMI_IMPORTED = False
 
+import message_models
+from transport.exceptions import DummyAmdSmiException
+
+
+GPU_DEVICE_HANDLE_LOADED = False
+handle_config = None
 
 logger = logging.getLogger()
 
 
+def try_get_gpu_handle():
+    """Try to get AMD GPU handle using AMD SMI library.
 
-NVML_AVAILABLE = True
-try:
-    pynvml.nvmlInit()
-except pynvml.NVMLError_LibraryNotFound:
-    logger.warning("NVIDIA Management Library (NVML) not detected, Disabling GPU tracking.")
-    NVML_AVAILABLE = False
+    Return:
+        AMD GPU handle if available, else None
+    """
+    logging.info("Attempting to initialize GPU monitoring...")
+    try:
+        logger.info("Checking if an AMD device can be initialized...")
+        amdsmi.amdsmi_init() 
+        handle = amdsmi.amdsmi_get_processor_handles()[0]
+        atexit.register(amdsmi.amdsmi_shut_down)
+        logger.info("Success!")
+        return "AMD", handle
+    except NameError:
+        logger.error("amdsmi library not detected.")
+    except (amdsmi.AmdSmiException, DummyAmdSmiException):
+        logger.warning("AMD SMI initialization failed.")
 
+    try:
+        logger.info("Checking if an Nvidia device can be initialized...")
+        pynvml.nvmlInit()
+        handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        atexit.register(pynvml.nvmlShutdown)
+        logger.info("Success!")
+        return "NVIDIA", handle
+    except pynvml.NVMLError_LibraryNotFound:
+        logger.warning("NVIDIA Management Library (NVML) not detected.")
+    except pynvml.NVMLError as e:
+        logger.warning("NVML initialization failed.")
 
+    logger.warning("Couldn't initialize GPU, Disabling GPU tracking.")
+    return None
 
 def get_stats():
     """Wrapper function for collecting individual hardware readings as 
@@ -48,32 +82,30 @@ def _get_ram_info() -> message_models.RAMInfo:
     )
 
 def _get_gpu_info() -> message_models.GPUInfo:
-    """Get GPU usage statistics using Nvidia management libary (NVML).
-    Adapted from gpustat (https://pypi.org/project/gpustat/)
-    https://pypi.org/project/nvidia-ml-py/
-    https://docs.nvidia.com/deploy/nvml-api/index.html
+    """Get usage statistics.
+
+    On first call, tries to initialize a GPU handle using
+    try_get_gpu_handle(). Subsequent calls will use the cached handle.
 
     Return:
         a GPUInfo pydantic model
     """
-    # Returna default empty message if NVML is not available
-    if not NVML_AVAILABLE:
+    # initialize a device handle on first call
+    global handle_config, GPU_DEVICE_HANDLE_LOADED
+    if not GPU_DEVICE_HANDLE_LOADED:
+        handle_config = try_get_gpu_handle()
+        GPU_DEVICE_HANDLE_LOADED = True
+
+    # Return empty model if no GPU handle could be obtained
+    if not handle_config:
         return message_models.GPUInfo()
+    
+    gpu_vendor, handle = handle_config
+    if gpu_vendor == "NVIDIA":
+        return _get_nvidia_gpu_info(handle)
 
-    pynvml.nvmlInit()
-    handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # get GPU at index 0
-    mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-    util_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
-    temp_info = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+    return _get_radeon_gpu_info(handle)
 
-    pynvml.nvmlShutdown()
-
-    return message_models.GPUInfo(
-        mem_used= int(mem_info.used / 10**6),
-        mem_total= int(mem_info.total / 10**6),
-        utilization= util_info.gpu,
-        temperature= temp_info
-    )
 
 def _get_cpu_info() -> message_models.CPUInfo:
     """Get CPU usage statistics via psutil.
@@ -126,3 +158,39 @@ def _get_cpu_temps() -> list[namedtuple]:
     # E.g., "Core 0", "Core 1, ..., "Package id 0"
     values.sort(key=lambda c: c.label)
     return values
+
+def _get_nvidia_gpu_info(handle) -> message_models.GPUInfo:
+    """Get Nvidia GPU usage statistics using Nvidia management libary (NVML).
+    https://pypi.org/project/nvidia-ml-py/
+    https://docs.nvidia.com/deploy/nvml-api/index.html
+
+    Return:
+        a GPUInfo pydantic model
+    """
+    mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+    util_info = pynvml.nvmlDeviceGetUtilizationRates(handle)
+    temp_info = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+
+    return message_models.GPUInfo(
+        mem_used=int(mem_info.used / 10**6),
+        mem_total=int(mem_info.total / 10**6),
+        utilization=util_info.gpu,
+        temperature=temp_info
+    )
+
+def _get_radeon_gpu_info(handle) -> message_models.GPUInfo:
+    """Get GPU usage statistics using amdsmi management library.
+    https://rocm.docs.amd.com/projects/amdsmi/en/latest/reference/amdsmi-py-api.html
+
+    Return:
+        a GPUInfo pydantic model
+    """
+    gpu_metrics = amdsmi.amdsmi_get_gpu_metrics_info(handle)
+    mem_info = amdsmi.amdsmi_get_gpu_vram_usage(handle)
+
+    return message_models.GPUInfo(
+        mem_used=int(mem_info["vram_used"]),
+        mem_total=int(mem_info["vram_total"]),
+        utilization=gpu_metrics["average_gfx_activity"],
+        temperature=gpu_metrics["temperature_vrgfx"]
+    )

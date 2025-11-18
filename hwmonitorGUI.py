@@ -293,7 +293,11 @@ class MainWindow(QMainWindow):
         label.setText(f"#{val}")
 
     def _update_utilization_graphs(self, readings):
-        """Update utilization time series graph. Remove oldest item and add new reading as latest."""
+        """Update utilization time series graph.
+        
+        Remove oldest item and add new reading as latest.
+        Updated both CPU and GPU graphs.
+        """
         for key in self.utilization_plots:
             # Update old x and y values keeping only the latest n values
             old_data = self.utilization_plots[key].getData()
@@ -309,7 +313,9 @@ class MainWindow(QMainWindow):
             self.utilization_plots[key].setData(x, y)
 
     def _update_ram(self, readings):
-        """Update RAM usage bars plot and labels."""
+        """Update RAM usage bars plot and labels.
+        Update both system RAM and GPU memory usage.
+        """
         system_used = int(readings["ram"]["used"] / readings["ram"]["total"] * 100)
         self.system_mem_bg_used.setOpts(height=[system_used])
         self.system_mem_bar_label.setText("{}%".format(system_used))

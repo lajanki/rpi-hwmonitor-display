@@ -6,11 +6,11 @@ A Raspberry Pi client-server model hardware status monitor.
 
 [![Unit tests](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml/badge.svg?branch=main)](https://github.com/lajanki/rpi-hwmonitor-display/actions/workflows/run-tests.yml)
 
-Displays client system's CPU, GPU (Nvidia) and RAM usage statistics on a separate server device. Built with a Raspberry Pi as the server.
+Displays client system's CPU, GPU and RAM usage metrics on a separate server device. Built with a Raspberry Pi as the server.
 
-Hardware readings are periodically collected from the client and sent to the server via a TCP socket over a local network.
+Hardware metrics are periodically collected from the client and sent to the server via a TCP socket over a local network.
 
-System statistics monitored include:
+System metrics monitored include:
  * Current CPU utilization :computer:
    * Overall CPU utilization percentage
    * 1 minute load average
@@ -20,9 +20,13 @@ System statistics monitored include:
  * CPU and GPU temperatures :thermometer:
  * GPU and total system RAM usage :bar_chart:
 
-> [!NOTE]  
-> Only Nvidia GPUs are supported
- 
+## GPU device support
+Both Nvidia and AMD Radeon GPUs are supported.
+
+GPU metrics collection is based on device management library support provided by device drivers; [AMD SMI](https://rocm.docs.amd.com/projects/amdsmi/en/latest/index.html) for AMD and [NVML](https://developer.nvidia.com/management-library-nvml) for Nvidia.
+
+For AMD devices you might need to install the library separately.
+
 
 ## Setup
 In order to setup network connection between the client and the server, create a configuration file and specify the
@@ -54,7 +58,7 @@ prompt for accepting its GPL license. The above install command may hang, and ev
 To pass this prompt, install the dependencies instead with
 
 ```shell
-uv sync --no-install-package PyQt5-Qt5 --config-settings="--confirm-license="
+uv sync --no-install-package PyQt5-Qt5 --config-settings-package "PyQt5:--confirm-license="
 ```
 This will ignore the binary-only package `PyQt5-Qt5` which contains a `Qt` installation and is not needed
 when building from source.
@@ -70,23 +74,24 @@ https://www.riverbankcomputing.com/static/Docs/PyQt5/installation.html
 ## Run
 First, start the monitor process on the server with:
 ```shell
-uv run --frozen main.py
+uv run --no-sync main.py
 ```
 
-Then, run the statistics poller on the client (or simply from another terminal window) with:
+Then, run the metrics poller on the client (or simply from another terminal window) with:
 ```shell
-uv run --frozen poller.py
+uv run --no-sync poller.py
 ```
 
-> [!TIP]  
-> For development purposes the TCP host can also be provided as a command line argument `--host` to both scripts.
-
+The host config can also be provided as a command line option in <host>:<port> format:
+```shell
+uv run --no-sync main.py --host 192.168.1.207:65432
+```
 
 ![Network](network.drawio.png)
 
 
 ## Note on Windows setup
-Running the poller on Windows requires some additional preparations. The library used to poll CPU statistics on Linux,
+Running the poller on Windows requires some additional preparations. The library used to poll CPU metrics on Linux,
 `psutil`, has limited functionality on Windows. In order to retain it, polling on Windows relies on a 3rd party tool,
 [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor).
 Download the monitor and run it in the background.
@@ -100,7 +105,7 @@ uv run pytest
 
 
 ## Legacy: Running on Google Cloud infrastructure
-An alternative transport mechanism is avialble for passing the hardware readings to the server: Google Cloud Pub/Sub.
+An alternative transport mechanism is avialble for passing the hardware metrics to the server: Google Cloud Pub/Sub.
 However, this is a legacy solution requiring more setup and offering no real benefit over a local network.
 It can be useful when the client and the server are not in the same network.
 
