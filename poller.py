@@ -19,13 +19,16 @@ if __name__ == "__main__":
         default="LAN",
         help="transport layer to use for publishing hardware readings.",
     )
-    parser.add_argument("--host", type=str, help="Socket host config ip value for LAN transport")
-
+    parser.add_argument("--host", type=str, help="Socket host and port number for LAN transport in host:port format.")
     args = parser.parse_args()
 
-    # Override config host value if provided
+    # Override host config if provided
     if args.host:
-        transport.CONFIG["transport"]["socket"]["host"] = args.host
+        host, port = args.host.split(":")
+        transport.CONFIG["transport"]["socket"] = {
+            "host": host,
+            "port": int(port)
+        }
 
     TRANSPORT_PUBLISHER_MAP = {
         "LAN": transport.local_network_publisher.LocalNetworkPublisher

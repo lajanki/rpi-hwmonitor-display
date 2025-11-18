@@ -82,9 +82,10 @@ Then, run the metrics poller on the client (or simply from another terminal wind
 uv run --no-sync poller.py
 ```
 
-> [!TIP]  
-> For development purposes the TCP host can also be provided as a command line argument `--host` to both scripts.
-
+The host config can also be provided as a command line option in <host>:<port> format:
+```shell
+uv run --no-sync main.py --host 192.168.1.207:65432
+```
 
 ![Network](network.drawio.png)
 
