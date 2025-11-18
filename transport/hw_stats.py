@@ -5,9 +5,14 @@ from collections import namedtuple
 
 import psutil
 import pynvml
-import amdsmi
+
+# The amdsmi module is importable only if the AMD SMI library is installed.
+# https://rocm.docs.amd.com/projects/amdsmi/en/latest/install/install.html
+try: import amdsmi; AMDSMI_IMPORTED = True
+except (ImportError, KeyError): AMDSMI_IMPORTED = False
 
 import message_models
+from transport.exceptions import DummyAmdSmiException
 
 
 GPU_DEVICE_HANDLE_LOADED = False
@@ -22,18 +27,21 @@ def try_get_gpu_handle():
     Return:
         AMD GPU handle if available, else None
     """
+    logging.info("Attempting to initialize GPU monitoring...")
     try:
-        logger.info("Trying to initialize AMD SMI library...")
+        logger.info("Checking if an AMD device can be initialized...")
         amdsmi.amdsmi_init() 
         handle = amdsmi.amdsmi_get_processor_handles()[0]
         atexit.register(amdsmi.amdsmi_shut_down)
         logger.info("Success!")
         return "AMD", handle
-    except amdsmi.AmdSmiException as e:
+    except NameError:
+        logger.error("amdsmi library not detected.")
+    except (amdsmi.AmdSmiException, DummyAmdSmiException):
         logger.warning("AMD SMI initialization failed.")
 
     try:
-        logger.info("Trying to initialize Nvidia SMI library...")
+        logger.info("Checking if an Nvidia device can be initialized...")
         pynvml.nvmlInit()
         handle = pynvml.nvmlDeviceGetHandleByIndex(0)
         atexit.register(pynvml.nvmlShutdown)
