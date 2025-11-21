@@ -150,7 +150,12 @@ def _get_cpu_temps() -> list[namedtuple]:
                     and sensor.Name.startswith(("CPU Core #", "CPU Package"))
                     and "Distance to TjMax" not in sensor.Name]
     else:
-        temps = psutil.sensors_temperatures()["coretemp"]
+        temps = psutil.sensors_temperatures().get("coretemp", [])
+
+        # coretemp is not available on all systems
+        if not temps:
+            return [CoreTemp("N/A", 0)]
+
         values = [CoreTemp(t.label, t.current) for t in temps]
     
     # Sort by core label to ensure consistent order.

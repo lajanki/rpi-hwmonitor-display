@@ -127,3 +127,15 @@ def test_try_get_gpu_handle(mock_register):
         with patch("transport.hw_stats.pynvml.nvmlInit", side_effect=mock_pynvml.NVMLError_LibraryNotFound):
             result = hw_stats.try_get_gpu_handle()
             assert result is None
+
+def test_cpu_temps_not_available(monkeypatch):
+    """If psutil.sensors_temperatures() does not have 'coretemp' available,
+    _get_cpu_temps should return a list with a single CoreTemp value with label 'N/A'.
+    """
+    monkeypatch.setattr("transport.hw_stats.psutil.sensors_temperatures", 
+                        MagicMock(return_value={}))
+
+    result = hw_stats._get_cpu_temps()
+    assert len(result) == 1
+    assert result[0].label == "N/A"
+    assert result[0].value == 0
