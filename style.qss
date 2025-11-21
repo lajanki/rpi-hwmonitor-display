@@ -20,6 +20,11 @@ QLabel#cpu_stats_label {
   color: white;
 }
 
+QLabel#control_button {
+  font-weight: normal;
+  font-size: 10pt;
+}
+
 QLabel {
   font-weight: bold;
   font-size: 18pt;

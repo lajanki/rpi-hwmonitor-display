@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QVBoxLayout,
     QHBoxLayout,
-    QSizePolicy
+    QSizePolicy,
 )
 import pyqtgraph as pg
 
@@ -67,16 +67,26 @@ class MainWindow(QMainWindow):
         layout.setColumnStretch(1, 1)
 
 
-        # Close button, top right
+        # Application icon, top left
         icon_label = QLabel(self)
         pixmap = QPixmap("resources/iconfinder_gnome-system-monitor_23964.png")
         pixmap = pixmap.scaledToHeight(48)
         icon_label.setPixmap(pixmap)
         cpu_stats_grid.addWidget(icon_label, 0, 0)
 
-        close_button = QPushButton("Close ")
-        close_button.setIcon(QIcon("resources/iconfinder_Close_1891023.png"))
-        close_button.setLayoutDirection(Qt.RightToLeft)
+        # Close button, top right
+        # Use QHBoxLayout to wrap icon and text inside the button
+        close_button = QPushButton()
+        layout = QHBoxLayout(close_button)
+
+        label = QLabel("Close", objectName="control_button")
+        layout.addWidget(label)
+
+        icon = QLabel()
+        icon.setPixmap(QIcon("resources/iconfinder_Close_1891023.png").pixmap(16, 16))
+        layout.addWidget(icon)
+        layout.setContentsMargins(35, 0, 30, 0)  # push the elements closer together
+
         cpu_stats_grid.addWidget(close_button, 0, 3)
         close_button.clicked.connect(self.stop_thread_and_exit)
         close_button.setSizePolicy(
@@ -103,9 +113,16 @@ class MainWindow(QMainWindow):
             cpu_stats_grid.addWidget(label, 1, i)
             self.cpu_stats_labels[name] = label   
         
-        core_utilization_button = QPushButton("cores ")
-        core_utilization_button.setIcon(QIcon("resources/iconfinder_chip_square_6137627.png"))
-        core_utilization_button.setLayoutDirection(Qt.RightToLeft)
+        core_utilization_button = QPushButton()
+        layout = QHBoxLayout(core_utilization_button)
+
+        label = QLabel("Cores", objectName="control_button")
+        layout.addWidget(label)
+        icon = QLabel()
+        icon.setPixmap(QIcon("resources/iconfinder_chip_square_6137627.png").pixmap(16, 16))
+        layout.addWidget(icon)
+        layout.setContentsMargins(35, 0, 30, 0)
+
         cpu_stats_grid.addWidget(core_utilization_button, 1, 3)
         core_utilization_button.setSizePolicy(
             QSizePolicy.Preferred,
