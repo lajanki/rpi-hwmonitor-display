@@ -64,11 +64,13 @@ def test_missing_load_averages(qtbot, mock_msg_data):
 
 
 @pytest.mark.parametrize("window_size", [(800, 480), (620, 420)])
-def test_touchscreen_spacing(qtbot, window_size):
+def test_touchscreen_spacing(qtbot, window_size, mock_msg_data):
     main_window = hwmonitorGUI.MainWindow(transport_worker_class=Mock)
     qtbot.addWidget(main_window)
     stylesheet = Path(__file__).resolve().parents[1] / "style.qss"
     main_window.setStyleSheet(stylesheet.read_text())
+    main_window._update_cpu_stat_cards(mock_msg_data)
+    main_window._update_temperature(mock_msg_data)
     main_window.resize(*window_size)
     main_window.show()
     qtbot.waitExposed(main_window)
@@ -85,3 +87,14 @@ def test_touchscreen_spacing(qtbot, window_size):
     cores_card = main_window.cpu_stats_labels["#"].parentWidget()
     assert utilization_card.width() < load_card.width()
     assert cores_card.width() < load_card.width()
+
+    cpu_temperature_card = main_window.cpu_temperature.parentWidget()
+    gpu_temperature_card = main_window.gpu_temperature.parentWidget()
+    cards = [utilization_card, load_card, cores_card, cpu_temperature_card, gpu_temperature_card]
+    for card in cards:
+        assert card.y() == utilization_card.y()
+        assert card.height() == utilization_card.height()
+    for previous_card, next_card in zip(cards, cards[1:]):
+        assert previous_card.geometry().right() < next_card.geometry().left()
+    for label in (main_window.cpu_temperature, main_window.gpu_temperature):
+        assert label.width() >= label.fontMetrics().horizontalAdvance(label.text())

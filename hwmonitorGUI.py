@@ -90,19 +90,19 @@ class MainWindow(QMainWindow):
         layout.addLayout(header)
 
         stats_row = QHBoxLayout()
-        stats_row.setSpacing(10)
+        stats_row.setSpacing(8)
         self.cpu_stats_labels = {}
         default_values = {
             "%": "0%",
             "1 min": "0.0",
             "#": "#0"
         }
-        stat_titles = {"%": "CPU UTILIZATION", "1 min": "LOAD AVERAGE", "#": "BUSY CORES"}
+        stat_titles = {"%": "CPU USAGE", "1 min": "LOAD AVERAGE", "#": "BUSY CORES"}
         for name, value in default_values.items():
             card = QFrame()
             card.setObjectName("metric_card")
             card_layout = QVBoxLayout(card)
-            card_layout.setContentsMargins(12, 8, 12, 8)
+            card_layout.setContentsMargins(8, 8, 8, 8)
             card_layout.setSpacing(2)
 
             caption = QLabel(stat_titles[name])
@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
 
             if name == "1 min":
                 load_row = QHBoxLayout()
-                load_row.setSpacing(8)
+                load_row.setSpacing(6)
                 for minutes in (1, 5, 15):
                     load_column = QVBoxLayout()
                     load_column.setSpacing(2)
@@ -132,6 +132,25 @@ class MainWindow(QMainWindow):
                 card_layout.addWidget(label)
                 self.cpu_stats_labels[name] = label
             stats_row.addWidget(card, 2 if name == "1 min" else 1)
+
+        self.cpu_temperature = QLabel("0°C", self)
+        self.gpu_temperature = QLabel("0°C", self)
+        for label, object_name, caption_text in (
+            (self.cpu_temperature, "cpu_temperature", "CPU TEMP"),
+            (self.gpu_temperature, "gpu_temperature", "GPU TEMP"),
+        ):
+            card = QFrame()
+            card.setObjectName("temperature_card")
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(7, 8, 7, 8)
+            card_layout.setSpacing(2)
+            caption = QLabel(caption_text)
+            caption.setObjectName("temperature_caption")
+            card_layout.addWidget(caption)
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setObjectName(object_name)
+            card_layout.addWidget(label)
+            stats_row.addWidget(card, 1)
         layout.addLayout(stats_row)
 
         content = QHBoxLayout()
@@ -175,31 +194,6 @@ class MainWindow(QMainWindow):
 
         metrics_panel = QVBoxLayout()
         metrics_panel.setSpacing(5)
-        temperature_title = QLabel("TEMPERATURE")
-        temperature_title.setObjectName("section_title")
-        metrics_panel.addWidget(temperature_title)
-        temperature_grid = QHBoxLayout()
-        temperature_grid.setSpacing(8)
-        self.cpu_temperature = QLabel("0°C", self)
-        self.gpu_temperature = QLabel("0°C", self)
-        for label, object_name, caption_text in (
-            (self.cpu_temperature, "cpu_temperature", "CPU"),
-            (self.gpu_temperature, "gpu_temperature", "GPU"),
-        ):
-            card = QFrame()
-            card.setObjectName("temperature_card")
-            card_layout = QVBoxLayout(card)
-            card_layout.setContentsMargins(7, 5, 7, 5)
-            card_layout.setSpacing(2)
-            caption = QLabel(caption_text)
-            caption.setObjectName("temperature_caption")
-            card_layout.addWidget(caption)
-            label.setAlignment(Qt.AlignCenter)
-            label.setObjectName(object_name)
-            card_layout.addWidget(label)
-            temperature_grid.addWidget(card)
-        metrics_panel.addLayout(temperature_grid)
-
         memory_title = QLabel("MEMORY")
         memory_title.setObjectName("section_title")
         metrics_panel.addWidget(memory_title)
