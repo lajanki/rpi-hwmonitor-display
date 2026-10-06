@@ -22,7 +22,9 @@ def test_widget_update(qtbot, mock_msg_data):
     
     # CPU utilization
     assert main_window.cpu_stats_labels["%"].text() == "10%"
-    assert main_window.cpu_stats_labels["1 min"].text() == "0.8<span style='font-size:20px'>(1 min)</span>"
+    assert main_window.cpu_stats_labels["1 min"].text() == "0.8"
+    assert main_window.cpu_stats_labels["5 min"].text() == "1.2"
+    assert main_window.cpu_stats_labels["15 min"].text() == "2.3"
     assert main_window.cpu_stats_labels["#"].text() == "#2"
 
     # System & GPU memory
@@ -44,6 +46,21 @@ def test_widget_update(qtbot, mock_msg_data):
     # On subsequent calls values should be set
     main_window.update_readings(msg_data)
     assert [ qlcd.intValue() for qlcd in main_window.core_window.qlcd_widgets ] == [7, 0, 0, 1, 0]
+
+
+def test_missing_load_averages(qtbot, mock_msg_data):
+    main_window = hwmonitorGUI.MainWindow(transport_worker_class=Mock)
+    qtbot.addWidget(main_window)
+    readings = {"cpu": mock_msg_data["cpu"].copy()}
+    main_window._update_cpu_stat_cards(readings)
+    readings["cpu"].pop("load_average_5min")
+    readings["cpu"].pop("load_average_15min")
+
+    main_window._update_cpu_stat_cards(readings)
+
+    assert main_window.cpu_stats_labels["1 min"].text() == "0.8"
+    assert main_window.cpu_stats_labels["5 min"].text() == "-"
+    assert main_window.cpu_stats_labels["15 min"].text() == "-"
 
 
 @pytest.mark.parametrize("window_size", [(800, 480), (620, 420)])

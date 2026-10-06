@@ -9,6 +9,8 @@ def mock_msg_data():
             "frequency": 11,
             "temperature": 12,
             "load_average_1min": 0.7651,
+            "load_average_5min": 1.2345,
+            "load_average_15min": 2.3456,
             "num_high_load_cores": 2,
             "cores": {
                 "utilization": [7,0,0,1],

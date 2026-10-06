@@ -49,6 +49,13 @@ QLabel#cpu_stats_label {
   font-weight: 700;
 }
 
+QLabel#load_average_value {
+  background: transparent;
+  color: #263535;
+  font-size: 18pt;
+  font-weight: 700;
+}
+
 QLCDNumber#clock_qlcd {
   background-color: #263a39;
   border: 0;

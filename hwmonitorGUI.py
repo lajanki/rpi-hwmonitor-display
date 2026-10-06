@@ -94,7 +94,7 @@ class MainWindow(QMainWindow):
         self.cpu_stats_labels = {}
         default_values = {
             "%": "0%",
-            "1 min": "0.0<span style='font-size:20px'>(1 min)</span>",
+            "1 min": "0.0",
             "#": "#0"
         }
         stat_titles = {"%": "CPU UTILIZATION", "1 min": "LOAD AVERAGE", "#": "BUSY CORES"}
@@ -109,11 +109,29 @@ class MainWindow(QMainWindow):
             caption.setObjectName("metric_caption")
             card_layout.addWidget(caption)
 
-            label = QLabel(value, self, objectName="cpu_stats_label")
-            label.setAlignment(Qt.AlignCenter)
-            card_layout.addWidget(label)
+            if name == "1 min":
+                load_row = QHBoxLayout()
+                load_row.setSpacing(8)
+                for minutes in (1, 5, 15):
+                    load_column = QVBoxLayout()
+                    load_column.setSpacing(2)
+                    label = QLabel(value)
+                    label.setObjectName("load_average_value")
+                    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    load_column.addWidget(label)
+                    period_label = QLabel(f"{minutes} min")
+                    period_label.setObjectName("metric_caption")
+                    period_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    load_column.addWidget(period_label)
+                    load_row.addLayout(load_column, 1)
+                    self.cpu_stats_labels[f"{minutes} min"] = label
+                card_layout.addLayout(load_row)
+            else:
+                label = QLabel(value, self, objectName="cpu_stats_label")
+                label.setAlignment(Qt.AlignCenter)
+                card_layout.addWidget(label)
+                self.cpu_stats_labels[name] = label
             stats_row.addWidget(card, 2 if name == "1 min" else 1)
-            self.cpu_stats_labels[name] = label
         layout.addLayout(stats_row)
 
         content = QHBoxLayout()
@@ -313,9 +331,10 @@ class MainWindow(QMainWindow):
         label.setStyleSheet(style_sheet)
 
 
-        label = self.cpu_stats_labels["1 min"]
-        val = readings["cpu"]["load_average_1min"]
-        label.setText("{:.1f}<span style='font-size:20px'>(1 min)</span>".format(val))
+        for minutes in (1, 5, 15):
+            label = self.cpu_stats_labels[f"{minutes} min"]
+            val = readings["cpu"].get(f"load_average_{minutes}min")
+            label.setText(f"{val:.1f}" if val is not None else "-")
 
         label = self.cpu_stats_labels["#"]
         val = readings["cpu"]["num_high_load_cores"]

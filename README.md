@@ -13,7 +13,7 @@ Hardware metrics are periodically collected from the client and sent to the serv
 System metrics monitored include:
  * Current CPU utilization :computer:
    * Overall CPU utilization percentage
-   * 1 minute load average
+  * 1, 5 and 15 minute load averages
    * Number of cores with high utilization
    * Individual CPU core utilization
  * CPU and GPU utilization graphs :chart_with_upwards_trend:
