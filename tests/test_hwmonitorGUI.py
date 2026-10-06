@@ -1,10 +1,12 @@
 import time
+from pathlib import Path
 from unittest.mock import patch, Mock
 
 import pytest
 
 import hwmonitorGUI
 from message_workers import LocalNetworkWorker
+from PyQt5.QtWidgets import QPushButton
 
 
 
@@ -42,3 +44,27 @@ def test_widget_update(qtbot, mock_msg_data):
     # On subsequent calls values should be set
     main_window.update_readings(msg_data)
     assert [ qlcd.intValue() for qlcd in main_window.core_window.qlcd_widgets ] == [7, 0, 0, 1, 0]
+
+
+@pytest.mark.parametrize("window_size", [(800, 480), (620, 420)])
+def test_touchscreen_spacing(qtbot, window_size):
+    main_window = hwmonitorGUI.MainWindow(transport_worker_class=Mock)
+    qtbot.addWidget(main_window)
+    stylesheet = Path(__file__).resolve().parents[1] / "style.qss"
+    main_window.setStyleSheet(stylesheet.read_text())
+    main_window.resize(*window_size)
+    main_window.show()
+    qtbot.waitExposed(main_window)
+
+    assert (main_window.width(), main_window.height()) == window_size
+    for object_name in ("secondary_button", "close_button"):
+        button = main_window.findChild(QPushButton, object_name)
+        assert button.width() >= 100
+        assert button.height() >= 52
+        assert button.iconSize().width() == 24
+
+    utilization_card = main_window.cpu_stats_labels["%"].parentWidget()
+    load_card = main_window.cpu_stats_labels["1 min"].parentWidget()
+    cores_card = main_window.cpu_stats_labels["#"].parentWidget()
+    assert utilization_card.width() < load_card.width()
+    assert cores_card.width() < load_card.width()
