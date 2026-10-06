@@ -6,6 +6,7 @@ refresh_interval=2
 [transport.socket]
 host="192.168.100.4"
 port=65432
+max_consecutive_failures=5
 
 [transport.pubsub]
 project_id=""

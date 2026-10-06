@@ -10,6 +10,7 @@ from message_models import MessageModel
 
 logger = logging.getLogger()
 REFRESH_INTERVAL = transport.CONFIG["transport"]["refresh_interval"]
+RETRY_INTERVAL = 3
 
 
 class LocalNetworkPublisher(BasePublisher):
@@ -18,9 +19,15 @@ class LocalNetworkPublisher(BasePublisher):
         pass
     
     def publish(self):
-        """Periodically send hardware metrics, reconnecting after socket failures."""
+        """Send metrics, stopping after the configured consecutive failure limit."""
         HOST = transport.CONFIG["transport"]["socket"]["host"]
         PORT = transport.CONFIG["transport"]["socket"]["port"]
+        max_consecutive_failures = transport.CONFIG["transport"]["socket"].get(
+            "max_consecutive_failures", 5
+        )
+        if type(max_consecutive_failures) is not int or max_consecutive_failures < 1:
+            raise ValueError("transport.socket.max_consecutive_failures must be a positive integer")
+        consecutive_failures = 0
 
         logger.info("Polling started...")
         logger.info("Ctrl-C to exit")
@@ -38,6 +45,7 @@ class LocalNetworkPublisher(BasePublisher):
                             while True:
                                 data = hw_stats.get_stats().model_dump_json().encode()
                                 client.sendall(data)
+                                consecutive_failures = 0
                                 time.sleep(REFRESH_INTERVAL)
                         except KeyboardInterrupt:
                             if connected:
@@ -48,11 +56,18 @@ class LocalNetworkPublisher(BasePublisher):
                                     logger.debug("Unable to clear display: connection unavailable")
                             raise
                 except OSError as error:
+                    consecutive_failures += 1
+                    if consecutive_failures >= max_consecutive_failures:
+                        logger.error(
+                            "Connection to %s:%s failed: %s. Stopping publish after %s consecutive failures",
+                            HOST, PORT, error, consecutive_failures,
+                        )
+                        return
                     logger.warning(
-                        "Connection to %s:%s failed: %s. Retrying in %s seconds",
-                        HOST, PORT, error, REFRESH_INTERVAL,
+                        "Connection to %s:%s failed: %s (%s/%s consecutive failures). Retrying in %s seconds",
+                        HOST, PORT, error, consecutive_failures, max_consecutive_failures, RETRY_INTERVAL,
                     )
-                time.sleep(REFRESH_INTERVAL)
+                    time.sleep(RETRY_INTERVAL)
         except KeyboardInterrupt:
             print()
             logger.info("Stopping publish")
