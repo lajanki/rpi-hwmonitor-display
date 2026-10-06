@@ -62,7 +62,7 @@ class MainWindow(QMainWindow):
         icon_label.setObjectName("app_icon")
         header.addWidget(icon_label)
 
-        title = QLabel("System monitor")
+        title = QLabel("System Monitor")
         title.setObjectName("app_title")
         header.addWidget(title)
         header.addStretch(1)
@@ -236,13 +236,15 @@ class MainWindow(QMainWindow):
         X_MAX = view_range[0][1]
         Y_MAX = view_range[1][1]
 
+        memory_label_font = QFont(font)
+        memory_label_font.setPixelSize(18)
         self.system_mem_label = pg.TextItem("0.0GB", fill="#197f87", anchor=(1,1))
-        self.system_mem_label.setFont(font)
+        self.system_mem_label.setFont(memory_label_font)
         self.system_mem_label.setPos(X_MAX, 0.75*Y_MAX)
         ram_plot.addItem(self.system_mem_label)
 
         self.gpu_mem_label = pg.TextItem("0.0GB", fill="#d47a36", anchor=(1,1))
-        self.gpu_mem_label.setFont(font)
+        self.gpu_mem_label.setFont(memory_label_font)
         self.gpu_mem_label.setPos(X_MAX, 0.57*Y_MAX)
         ram_plot.addItem(self.gpu_mem_label)
 
