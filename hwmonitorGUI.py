@@ -169,11 +169,15 @@ class MainWindow(QMainWindow):
 
         utilization_graph = pg.PlotWidget(axisItems={"bottom": date_axis, "left": percent_axis})
         utilization_graph.setObjectName("utilization_graph")
-        utilization_graph.setBackground("#f6f8f7")
+        utilization_graph.setBackground("#292e30")
+        for axis_name in ("left", "bottom"):
+            axis = utilization_graph.getAxis(axis_name)
+            axis.setPen("#788880")
+            axis.setTextPen("#abb8b2")
         utilization_graph.showGrid(x=True, y=True, alpha=0.15)
         utilization_graph.getAxis("left").setWidth(42)
         utilization_graph.getAxis("bottom").setHeight(28)
-        utilization_graph.addLegend()
+        utilization_graph.addLegend(labelTextColor="#dde4e0")
 
         # Initialize graphs with zeros for previous 5 minutes
         REFRESH_INTERVAL = CONFIG["transport"]["refresh_interval"]
@@ -181,8 +185,8 @@ class MainWindow(QMainWindow):
         x = [int(time.time()) - REFRESH_INTERVAL*i for i in range(NUM_DATAPOINTS,0,-1)]
         y = [0] * NUM_DATAPOINTS
 
-        cpu_plot = utilization_graph.plot(x, y, pen=pg.mkPen("#197f87", width=2), name="CPU")
-        gpu_plot = utilization_graph.plot(x, y, pen=pg.mkPen("#d47a36", width=2), name="GPU")
+        cpu_plot = utilization_graph.plot(x, y, pen=pg.mkPen("#68aaa6", width=2), name="CPU")
+        gpu_plot = utilization_graph.plot(x, y, pen=pg.mkPen("#c69b70", width=2), name="GPU")
         self.utilization_plots = {"cpu": cpu_plot, "gpu": gpu_plot}
 
         # Fix y-axis range
@@ -199,27 +203,31 @@ class MainWindow(QMainWindow):
         metrics_panel.addWidget(memory_title)
         ram_plot = pg.PlotWidget()
         ram_plot.setObjectName("memory_graph")
-        ram_plot.setBackground("#f6f8f7")
+        ram_plot.setBackground("#292e30")
+        for axis_name in ("left", "bottom"):
+            axis = ram_plot.getAxis(axis_name)
+            axis.setPen("#788880")
+            axis.setTextPen("#abb8b2")
         ram_plot.getAxis("bottom").setHeight(28)
         ram_plot.showGrid(y=True, alpha=0.12)
 
         x_labeled = {0: "RAM", 0.8: "GPU"}
         x = list(x_labeled.keys())
 
-        self.system_mem_bg_used = pg.BarGraphItem(x=[x[0]], height=[0], width=0.6, brush="#197f87")
-        self.gpu_mem_bg_used = pg.BarGraphItem(x=[x[1]], height=[0], width=0.6, brush="#d47a36")
+        self.system_mem_bg_used = pg.BarGraphItem(x=[x[0]], height=[0], width=0.6, brush="#487d7a")
+        self.gpu_mem_bg_used = pg.BarGraphItem(x=[x[1]], height=[0], width=0.6, brush="#876748")
         ram_plot.addItem(self.system_mem_bg_used)
         ram_plot.addItem(self.gpu_mem_bg_used)
 
         font = QFont()
         font.setPixelSize(14)
 
-        self.system_mem_bar_label = pg.TextItem("%", anchor=(0.5, 0.5))
+        self.system_mem_bar_label = pg.TextItem("%", color="#dde4e0", anchor=(0.5, 0.5))
         self.system_mem_bar_label.setPos(x[0], 10)
         self.system_mem_bar_label.setFont(font)
         ram_plot.addItem(self.system_mem_bar_label)
 
-        self.gpu_mem_bar_label = pg.TextItem("%", anchor=(0.5, 0.5))
+        self.gpu_mem_bar_label = pg.TextItem("%", color="#dde4e0", anchor=(0.5, 0.5))
         self.gpu_mem_bar_label.setPos(x[1], 10)
         self.gpu_mem_bar_label.setFont(font)
         ram_plot.addItem(self.gpu_mem_bar_label)
@@ -238,12 +246,12 @@ class MainWindow(QMainWindow):
 
         memory_label_font = QFont(font)
         memory_label_font.setPixelSize(18)
-        self.system_mem_label = pg.TextItem("0.0GB", fill="#197f87", anchor=(1,1))
+        self.system_mem_label = pg.TextItem("0.0GB", color="#dde4e0", fill="#355a58", anchor=(1,1))
         self.system_mem_label.setFont(memory_label_font)
         self.system_mem_label.setPos(X_MAX, 0.75*Y_MAX)
         ram_plot.addItem(self.system_mem_label)
 
-        self.gpu_mem_label = pg.TextItem("0.0GB", fill="#d47a36", anchor=(1,1))
+        self.gpu_mem_label = pg.TextItem("0.0GB", color="#dde4e0", fill="#624d39", anchor=(1,1))
         self.gpu_mem_label.setFont(memory_label_font)
         self.gpu_mem_label.setPos(X_MAX, 0.57*Y_MAX)
         ram_plot.addItem(self.gpu_mem_label)

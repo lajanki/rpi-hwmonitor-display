@@ -1,81 +1,81 @@
 QWidget {
-  background-color: #edf1ef;
-  color: #263535;
+  background-color: #242829;
+  color: #dde4e0;
   font-family: "Noto Sans", "DejaVu Sans", sans-serif;
   font-size: 10pt;
 }
 
 QMainWindow {
-  background-color: #edf1ef;
+  background-color: #242829;
 }
 
 QFrame#metric_card {
-  background-color: #ffffff;
-  border: 1px solid #d8e0dc;
+  background-color: #303638;
+  border: 1px solid #53615c;
   border-radius: 5px;
 }
 
 QFrame#temperature_card {
-  border: 1px solid #d8e0dc;
+  border: 1px solid #53615c;
   border-radius: 4px;
-  background-color: #ffffff;
+  background-color: #303638;
 }
 
 QLabel#app_title {
   background: transparent;
-  color: #263535;
+  color: #dde4e0;
   font-size: 17pt;
   font-weight: 700;
 }
 
 QLabel#section_title {
   background: transparent;
-  color: #586765;
+  color: #abb8b2;
   font-size: 9pt;
   font-weight: 700;
 }
 
 QLabel#metric_caption {
   background: transparent;
-  color: #667572;
+  color: #abb8b2;
   font-size: 8pt;
   font-weight: 700;
 }
 
 QLabel#cpu_stats_label {
   background: transparent;
-  color: #263535;
+  color: #dde4e0;
   font-size: 23pt;
   font-weight: 700;
 }
 
 QLabel#load_average_value {
   background: transparent;
-  color: #263535;
+  color: #dde4e0;
   font-size: 18pt;
   font-weight: 700;
 }
 
 QLCDNumber#clock_qlcd {
-  background-color: #263a39;
+  background-color: #1c2021;
   border: 0;
   border-radius: 4px;
-  color: #f3f6f3;
+  color: #dde4e0;
   padding: 4px 8px;
 }
 
 QPushButton {
   min-height: 30px;
   padding: 0 10px;
-  border: 1px solid #cbd5d0;
+  border: 1px solid #66756e;
   border-radius: 4px;
-  background-color: #ffffff;
-  color: #344543;
+  background-color: #394244;
+  color: #dde4e0;
   font-weight: 600;
 }
 
 QPushButton:hover {
-  background-color: #e2ebe7;
+  background-color: #485452;
 }
 
 QPushButton#secondary_button, QPushButton#close_button {
@@ -84,23 +84,14 @@ QPushButton#secondary_button, QPushButton#close_button {
 }
 
 QPushButton#close_button {
-  color: #8b493b;
-}
-
-QLabel#cpu_temperature {
-  min-height: 44px;
-  border-radius: 4px;
-  background-color: #d8eeeb;
-  color: #176f73;
-  font-size: 19pt;
-  font-weight: 700;
+  color: #d9aa9c;
 }
 
 QLabel#gpu_temperature {
   min-height: 34px;
   border-radius: 4px;
-  background-color: #f4e4d7;
-  color: #a25326;
+  background-color: #44392f;
+  color: #dbb58e;
   font-size: 16pt;
   font-weight: 700;
 }
@@ -108,15 +99,21 @@ QLabel#gpu_temperature {
 QLabel#cpu_temperature {
   min-height: 34px;
   border-radius: 4px;
-  background-color: #d8eeeb;
-  color: #176f73;
+  background-color: #294445;
+  color: #9cc9c5;
   font-size: 16pt;
   font-weight: 700;
 }
 
 QLabel#temperature_caption {
   background: transparent;
-  color: #667572;
+  color: #abb8b2;
   font-size: 8pt;
   font-weight: 700;
+}
+
+QLCDNumber {
+  background-color: #303638;
+  color: #dde4e0;
+  border: 1px solid #53615c;
 }

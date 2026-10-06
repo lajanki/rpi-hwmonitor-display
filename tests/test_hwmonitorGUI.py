@@ -94,7 +94,28 @@ def test_touchscreen_spacing(qtbot, window_size, mock_msg_data):
     for card in cards:
         assert card.y() == utilization_card.y()
         assert card.height() == utilization_card.height()
+        background = card.palette().color(card.backgroundRole())
+        assert max(background.red(), background.green(), background.blue()) < 128
     for previous_card, next_card in zip(cards, cards[1:]):
         assert previous_card.geometry().right() < next_card.geometry().left()
     for label in (main_window.cpu_temperature, main_window.gpu_temperature):
         assert label.width() >= label.fontMetrics().horizontalAdvance(label.text())
+    for plot_name in ("utilization_graph", "memory_graph"):
+        plot = main_window.findChild(hwmonitorGUI.pg.PlotWidget, plot_name)
+        background = plot.backgroundBrush().color()
+        assert max(background.red(), background.green(), background.blue()) < 128
+
+
+@pytest.mark.parametrize("utilization", [0, 20, 50, 100])
+def test_cpu_utilization_colors_stay_dark(qtbot, mock_msg_data, utilization):
+    main_window = hwmonitorGUI.MainWindow(transport_worker_class=Mock)
+    qtbot.addWidget(main_window)
+    readings = {"cpu": dict(mock_msg_data["cpu"], utilization=utilization)}
+    main_window._update_cpu_stat_cards(readings)
+    label = main_window.cpu_stats_labels["%"]
+    label.ensurePolished()
+
+    background = label.palette().color(label.backgroundRole())
+    foreground = label.palette().color(label.foregroundRole())
+    assert max(background.red(), background.green(), background.blue()) < 128
+    assert min(foreground.red(), foreground.green(), foreground.blue()) > 180

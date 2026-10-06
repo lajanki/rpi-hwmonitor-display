@@ -21,15 +21,13 @@ def get_cpu_utilization_background_style(level):
         a style sheet string to apply to the widget.
     """ 
 
-    # saturation: increase to 100 from a fixed 'low' value. 20 ↦ 42 and 100 ↦ 100
-    saturation = interpolate((20, 42), (100, 100), level)
+    saturation = interpolate((20, 30), (100, 50), level)
     
-    # lightness: decrease to 30 from a bright value. 20 ↦ 79 and 100 ↦ 30
-    lightness = interpolate((20, 79), (100, 30), level)
+    lightness = interpolate((20, 32), (100, 22), level)
 
     # Fixed background color for low utilization values. 
     if level <= 20:
-        saturation = 42
-        lightness = 79
+        saturation = 30
+        lightness = 32
 
-    return f"background-color: hsl(218, {saturation}%, {lightness}%)"
+    return f"background-color: hsl(174, {saturation}%, {lightness}%); color: #dde4e0"
