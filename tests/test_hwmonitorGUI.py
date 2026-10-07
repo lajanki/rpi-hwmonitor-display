@@ -39,13 +39,19 @@ def test_widget_update(qtbot, mock_msg_data):
     assert main_window.gpu_temperature.text() == "70°C"
 
     # Core window
-    # On 1st call a minimum of 5 empty QLCDNumber elements are initialized
+    # Core bars are created and populated on the first update.
     assert main_window.core_window.empty_label.parent() is None
-    assert len(main_window.core_window.qlcd_widgets) == 5
+    assert len(main_window.core_window.core_bars) == 4
+    assert [bar.value() for bar in main_window.core_window.core_bars] == [7, 0, 0, 1]
+    assert [pane.count() for pane in main_window.core_window.pane_layouts] == [2, 2]
+    core_close_button = main_window.core_window.findChild(QPushButton)
+    assert core_close_button.minimumWidth() == 100
+    assert core_close_button.minimumHeight() == 52
+    assert core_close_button.iconSize().width() == 24
 
-    # On subsequent calls values should be set
+    # Subsequent readings update the existing bars.
     main_window.update_readings(msg_data)
-    assert [ qlcd.intValue() for qlcd in main_window.core_window.qlcd_widgets ] == [7, 0, 0, 1, 0]
+    assert [bar.value() for bar in main_window.core_window.core_bars] == [7, 0, 0, 1]
 
 
 def test_missing_load_averages(qtbot, mock_msg_data):

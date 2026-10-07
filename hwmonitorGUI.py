@@ -18,11 +18,11 @@ from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,
     QLCDNumber,
+    QProgressBar,
     QDesktopWidget,
     QGridLayout,
     QVBoxLayout,
     QHBoxLayout,
-    QSizePolicy,
     QFrame,
 )
 import pyqtgraph as pg
@@ -388,59 +388,63 @@ class MainWindow(QMainWindow):
 
 class CPUCoreWindow(QWidget):
     """Window for cpu core utilizations."""
-    COLUMNS_PER_ROW = 5
 
     def __init__(self):
         super().__init__()
-        self.layout = QGridLayout()
-        self.qlcd_widgets = []
+        self.grid_layout = QGridLayout()
+        self.core_bars = []
+        self.pane_layouts = []
 
-        # Button for closing the window, top right.
-        close_button = QPushButton("Close ")
+        close_button = QPushButton("Close")
         close_button.setIcon(QIcon("resources/iconfinder_Close_1891023.png"))
-        close_button.setLayoutDirection(Qt.RightToLeft)
+        close_button.setMinimumSize(100, 52)
+        close_button.setIconSize(QSize(24, 24))
+        close_button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         close_button.clicked.connect(self.close)
-        close_button.setSizePolicy(
-            QSizePolicy.Preferred,
-            QSizePolicy.Preferred
+        self.grid_layout.addWidget(
+            close_button, 0, 1, alignment=Qt.AlignmentFlag.AlignRight
         )
 
         self.empty_label = QLabel("Waiting for data...", self)
-        self.layout.addWidget(self.empty_label, 1, CPUCoreWindow.COLUMNS_PER_ROW-1)
+        self.grid_layout.addWidget(
+            self.empty_label, 1, 0, 1, 2, alignment=Qt.AlignmentFlag.AlignCenter
+        )
 
-        self.layout.addWidget(close_button, 0, CPUCoreWindow.COLUMNS_PER_ROW-1)
-        self.setLayout(self.layout)
+        panes = QHBoxLayout()
+        panes.setSpacing(18)
+        for _ in range(2):
+            pane = QVBoxLayout()
+            pane.setSpacing(8)
+            self.pane_layouts.append(pane)
+            panes.addLayout(pane, 1)
+        self.grid_layout.addLayout(panes, 2, 0, 1, 2)
+        self.setLayout(self.grid_layout)
         self.resize(600, 400)
         self.setWindowTitle("CPU core utilization")
 
     def _update_cpu_cores(self, readings):
-        """Update Core utilization values. The number of cores is not known
-        until the first response is received from the poller.
-        Create a QLCD widget for each core if not already created
-        and update the values.
-        """
-        # Remove the dummy label
-        self.empty_label.setParent(None)
-        if not self.qlcd_widgets:
-            NUM_CORES = len(readings["cpu"]["cores"]["utilization"])
-            # add at least 1 row if NUM_CORES < COLUMNS_PER_ROW
-            NUM_ROWS = max(1, NUM_CORES//CPUCoreWindow.COLUMNS_PER_ROW)
-            for row in range(NUM_ROWS):
-                for col in range(CPUCoreWindow.COLUMNS_PER_ROW):
-                    qlcd = QLCDNumber(self)
-                    qlcd.setDigitCount(2)
-                    qlcd.setSegmentStyle(QLCDNumber.Flat)
-                    self.layout.addWidget(qlcd, row+2, col)
-                    self.qlcd_widgets.append(qlcd)
-        else:
-            for i, qlcd in enumerate(self.qlcd_widgets):
-                try:
-                    val = readings["cpu"]["cores"]["utilization"][i]
-                except IndexError:
-                    val = 0
-                qlcd.display(val)
-                style_sheet = utils.get_cpu_utilization_background_style(val)
-                qlcd.setStyleSheet(style_sheet) 
+        """Update one horizontal utilization bar per CPU core."""
+        utilizations = readings["cpu"]["cores"]["utilization"]
+        if not self.core_bars:
+            self.empty_label.setParent(None)
+            split_at = (len(utilizations) + 1) // 2
+            for core_index in range(len(utilizations)):
+                bar = QProgressBar(self)
+                bar.setRange(0, 100)
+                bar.setFormat(f"CPU {core_index}  %p%")
+                bar.setMinimumHeight(28)
+                self.pane_layouts[0 if core_index < split_at else 1].addWidget(bar)
+                self.core_bars.append(bar)
+
+        for core_index, bar in enumerate(self.core_bars):
+            value = utilizations[core_index] if core_index < len(utilizations) else 0
+            bar.setValue(value)
+            color_style = utils.get_cpu_utilization_background_style(value)
+            bar.setStyleSheet(
+                "QProgressBar { border: 1px solid #53615c; border-radius: 2px; "
+                "background-color: #303638; color: #dde4e0; text-align: center; }"
+                f"QProgressBar::chunk {{ {color_style} }}"
+            )
 
 class PercentAxisItem(pg.AxisItem):
     """Custom pyqtgraph AxisItem class with customized tick strings."""
