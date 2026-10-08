@@ -113,6 +113,7 @@ def _get_cpu_info() -> message_models.CPUInfo:
     Return:
         a CPUInfo pydantic model
     """
+    load_average_1min, load_average_5min, load_average_15min = psutil.getloadavg()
     return message_models.CPUInfo(
         cores=message_models.CPUCoreInfo(
             utilization=list(map(int, psutil.cpu_percent(percpu=True))),
@@ -122,7 +123,9 @@ def _get_cpu_info() -> message_models.CPUInfo:
         utilization=int(psutil.cpu_percent()),
         frequency=int(psutil.cpu_freq().current),
         temperature=int(_get_cpu_temps()[-1].value), # assume last reading is CPU package temp
-        load_average_1min=psutil.getloadavg()[0],
+        load_average_1min=load_average_1min,
+        load_average_5min=load_average_5min,
+        load_average_15min=load_average_15min,
         num_high_load_cores=len([c for c in psutil.cpu_percent(percpu=True) if c > 50])
     )
 

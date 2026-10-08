@@ -16,6 +16,8 @@ class CPUInfo(BaseModel):
     frequency: int = 0
     temperature: int = 0
     load_average_1min: float = 0.0  # 1 minute load average
+    load_average_5min: float = 0.0
+    load_average_15min: float = 0.0
     num_high_load_cores: int = 0  # number of cores with utilization above p%
     cores: CPUCoreInfo = CPUCoreInfo()
 

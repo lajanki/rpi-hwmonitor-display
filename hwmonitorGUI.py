@@ -5,6 +5,7 @@ import numpy as np
 from PyQt5.QtGui import QFont, QIcon, QPixmap
 from PyQt5.QtCore import (
     Qt,
+    QSize,
     QObject,
     QThread,
     QTimer,
@@ -17,11 +18,12 @@ from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,
     QLCDNumber,
+    QProgressBar,
     QDesktopWidget,
     QGridLayout,
     QVBoxLayout,
     QHBoxLayout,
-    QSizePolicy,
+    QFrame,
 )
 import pyqtgraph as pg
 
@@ -44,101 +46,138 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         main_widget = QWidget()
-        main_widget.setAutoFillBackground(True)
+        main_widget.setObjectName("main_widget")
         self.setCentralWidget(main_widget)
 
-        layout = QGridLayout()
-        main_widget.setLayout(layout)
+        layout = QVBoxLayout(main_widget)
+        layout.setContentsMargins(18, 14, 18, 16)
+        layout.setSpacing(12)
 
-        cpu_stats_grid = QGridLayout()
-        timeline_grid = QVBoxLayout()
-        metric_grid = QVBoxLayout()
-
-        layout.addLayout(cpu_stats_grid, 0, 0, 1, 2)
-        layout.addLayout(timeline_grid, 1, 0)
-        layout.addLayout(metric_grid, 1, 1)
-
-        # Set more space to bottom row
-        layout.setRowStretch(0, 1)
-        layout.setRowStretch(1, 2)
-
-        # Set more space to left column
-        layout.setColumnStretch(0, 2)
-        layout.setColumnStretch(1, 1)
-
-
-        # Application icon, top left
+        header = QHBoxLayout()
+        header.setSpacing(8)
         icon_label = QLabel(self)
         pixmap = QPixmap("resources/iconfinder_gnome-system-monitor_23964.png")
-        pixmap = pixmap.scaledToHeight(48)
+        pixmap = pixmap.scaledToHeight(34)
         icon_label.setPixmap(pixmap)
-        cpu_stats_grid.addWidget(icon_label, 0, 0)
+        icon_label.setObjectName("app_icon")
+        header.addWidget(icon_label)
 
-        # Close button, top right
-        # Use QHBoxLayout to wrap icon and text inside the button
-        close_button = QPushButton()
-        layout = QHBoxLayout(close_button)
-
-        label = QLabel("Close", objectName="control_button")
-        layout.addWidget(label)
-
-        icon = QLabel()
-        icon.setPixmap(QIcon("resources/iconfinder_Close_1891023.png").pixmap(16, 16))
-        layout.addWidget(icon)
-        layout.setContentsMargins(35, 0, 30, 0)  # push the elements closer together
-
-        cpu_stats_grid.addWidget(close_button, 0, 3)
-        close_button.clicked.connect(self.stop_thread_and_exit)
-        close_button.setSizePolicy(
-            QSizePolicy.Preferred,
-            QSizePolicy.Preferred
-        )
+        title = QLabel("System Monitor")
+        title.setObjectName("app_title")
+        header.addWidget(title)
+        header.addStretch(1)
 
         self.clock_lcd = QLCDNumber(5, self, objectName="clock_qlcd")
         self.clock_lcd.setSegmentStyle(QLCDNumber.Flat)
-        cpu_stats_grid.addWidget(self.clock_lcd, 0, 1, 1, 2)
+        self.clock_lcd.setMinimumWidth(100)
+        header.addWidget(self.clock_lcd)
 
-        ### CPU utilization statistics labels
-        # The QLCD widget has limited support for non-digit characters.
-        # Use QLabels with custom styling.
+        core_utilization_button = QPushButton("Cores")
+        core_utilization_button.setIcon(QIcon("resources/iconfinder_chip_square_6137627.png"))
+        core_utilization_button.setObjectName("secondary_button")
+        core_utilization_button.setMinimumSize(100, 52)
+        core_utilization_button.setIconSize(QSize(24, 24))
+        header.addWidget(core_utilization_button)
+        core_utilization_button.clicked.connect(self.core_window.show)
+
+        close_button = QPushButton("Close")
+        close_button.setIcon(QIcon("resources/iconfinder_Close_1891023.png"))
+        close_button.setObjectName("close_button")
+        close_button.setMinimumSize(100, 52)
+        close_button.setIconSize(QSize(24, 24))
+        header.addWidget(close_button)
+        close_button.clicked.connect(self.stop_thread_and_exit)
+        layout.addLayout(header)
+
+        stats_row = QHBoxLayout()
+        stats_row.setSpacing(8)
         self.cpu_stats_labels = {}
         default_values = {
             "%": "0%",
-            "1 min": "0.0<span style='font-size:20px'>(1 min)</span>",
+            "1 min": "0.0",
             "#": "#0"
         }
-        for i, name in enumerate(default_values):
-            label = QLabel(default_values[name], self, objectName="cpu_stats_label")
-            label.setAlignment(Qt.AlignCenter)
-            cpu_stats_grid.addWidget(label, 1, i)
-            self.cpu_stats_labels[name] = label   
-        
-        core_utilization_button = QPushButton()
-        layout = QHBoxLayout(core_utilization_button)
+        stat_titles = {"%": "CPU USAGE", "1 min": "LOAD AVERAGE", "#": "BUSY CORES"}
+        for name, value in default_values.items():
+            card = QFrame()
+            card.setObjectName("metric_card")
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(8, 8, 8, 8)
+            card_layout.setSpacing(2)
 
-        label = QLabel("Cores", objectName="control_button")
-        layout.addWidget(label)
-        icon = QLabel()
-        icon.setPixmap(QIcon("resources/iconfinder_chip_square_6137627.png").pixmap(16, 16))
-        layout.addWidget(icon)
-        layout.setContentsMargins(35, 0, 30, 0)
+            caption = QLabel(stat_titles[name])
+            caption.setObjectName("metric_caption")
+            card_layout.addWidget(caption)
 
-        cpu_stats_grid.addWidget(core_utilization_button, 1, 3)
-        core_utilization_button.setSizePolicy(
-            QSizePolicy.Preferred,
-            QSizePolicy.Preferred
-        )
-        core_utilization_button.clicked.connect(self.core_window.show)
+            if name == "1 min":
+                load_row = QHBoxLayout()
+                load_row.setSpacing(6)
+                for minutes in (1, 5, 15):
+                    load_column = QVBoxLayout()
+                    load_column.setSpacing(2)
+                    label = QLabel(value)
+                    label.setObjectName("load_average_value")
+                    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    load_column.addWidget(label)
+                    period_label = QLabel(f"{minutes} min")
+                    period_label.setObjectName("metric_caption")
+                    period_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    load_column.addWidget(period_label)
+                    load_row.addLayout(load_column, 1)
+                    self.cpu_stats_labels[f"{minutes} min"] = label
+                card_layout.addLayout(load_row)
+            else:
+                label = QLabel(value, self, objectName="cpu_stats_label")
+                label.setAlignment(Qt.AlignCenter)
+                card_layout.addWidget(label)
+                self.cpu_stats_labels[name] = label
+            stats_row.addWidget(card, 2 if name == "1 min" else 1)
 
+        self.cpu_temperature = QLabel("0°C", self)
+        self.gpu_temperature = QLabel("0°C", self)
+        for label, object_name, caption_text in (
+            (self.cpu_temperature, "cpu_temperature", "CPU TEMP"),
+            (self.gpu_temperature, "gpu_temperature", "GPU TEMP"),
+        ):
+            card = QFrame()
+            card.setObjectName("temperature_card")
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(7, 8, 7, 8)
+            card_layout.setSpacing(2)
+            caption = QLabel(caption_text)
+            caption.setObjectName("temperature_caption")
+            card_layout.addWidget(caption)
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setObjectName(object_name)
+            card_layout.addWidget(label)
+            stats_row.addWidget(card, 1)
+        layout.addLayout(stats_row)
 
-        ### CPU & GPU utilization time series grid
+        content = QHBoxLayout()
+        content.setSpacing(12)
+        layout.addLayout(content, 1)
+
+        graph_panel = QVBoxLayout()
+        graph_panel.setSpacing(5)
+        graph_title = QLabel("CPU & GPU ACTIVITY")
+        graph_title.setObjectName("section_title")
+        graph_panel.addWidget(graph_title)
+
         date_axis = pg.graphicsItems.DateAxisItem.DateAxisItem(orientation="bottom")
         date_axis.setTickSpacing(major=60, minor=0)
         percent_axis = PercentAxisItem(orientation="left")
 
-        utilization_graph = pg.PlotWidget(axisItems = {"bottom": date_axis, "left": percent_axis})
-        utilization_graph.setTitle("<h2>CPU/GPU</h2>")
-        utilization_graph.addLegend() # Needs to be called before any plotting
+        utilization_graph = pg.PlotWidget(axisItems={"bottom": date_axis, "left": percent_axis})
+        utilization_graph.setObjectName("utilization_graph")
+        utilization_graph.setBackground("#292e30")
+        for axis_name in ("left", "bottom"):
+            axis = utilization_graph.getAxis(axis_name)
+            axis.setPen("#788880")
+            axis.setTextPen("#abb8b2")
+        utilization_graph.showGrid(x=True, y=True, alpha=0.15)
+        utilization_graph.getAxis("left").setWidth(42)
+        utilization_graph.getAxis("bottom").setHeight(28)
+        utilization_graph.addLegend(labelTextColor="#dde4e0")
 
         # Initialize graphs with zeros for previous 5 minutes
         REFRESH_INTERVAL = CONFIG["transport"]["refresh_interval"]
@@ -146,56 +185,49 @@ class MainWindow(QMainWindow):
         x = [int(time.time()) - REFRESH_INTERVAL*i for i in range(NUM_DATAPOINTS,0,-1)]
         y = [0] * NUM_DATAPOINTS
 
-        cpu_plot = utilization_graph.plot(x, y, pen="#1227F1", name="CPU")
-        gpu_plot = utilization_graph.plot(x, y, pen="#660000", name="GPU")
+        cpu_plot = utilization_graph.plot(x, y, pen=pg.mkPen("#68aaa6", width=2), name="CPU")
+        gpu_plot = utilization_graph.plot(x, y, pen=pg.mkPen("#c69b70", width=2), name="GPU")
         self.utilization_plots = {"cpu": cpu_plot, "gpu": gpu_plot}
 
         # Fix y-axis range
         view_box = utilization_graph.getViewBox()
         view_box.setRange(yRange=(0,100))
-        timeline_grid.addWidget(utilization_graph)
-
         utilization_graph.setMouseEnabled(x=False, y=False)
+        graph_panel.addWidget(utilization_graph, 1)
+        content.addLayout(graph_panel, 2)
 
-
-        ### CPU & GPU temperatures
-        temperature_grid = QHBoxLayout()
-        self.cpu_temperature = QLabel("0°C", self)
-        self.gpu_temperature = QLabel("0°C", self)
-        
-        self.cpu_temperature.setAlignment(Qt.AlignCenter)
-        self.gpu_temperature.setAlignment(Qt.AlignCenter)
-        self.cpu_temperature.setStyleSheet("background-color: black; color: #93BAFF")
-        self.gpu_temperature.setStyleSheet("background-color: black; color: #9F0000")
-  
-        temperature_grid.addWidget(self.cpu_temperature)
-        temperature_grid.addWidget(self.gpu_temperature)
-        metric_grid.addLayout(temperature_grid)
-
-
-        ### RAM grid
-        ram_grid = QVBoxLayout()
-        ram_plot = pg.plot()
-        ram_plot.setTitle("<h2>MEM</h2>")
+        metrics_panel = QVBoxLayout()
+        metrics_panel.setSpacing(5)
+        memory_title = QLabel("MEMORY")
+        memory_title.setObjectName("section_title")
+        metrics_panel.addWidget(memory_title)
+        ram_plot = pg.PlotWidget()
+        ram_plot.setObjectName("memory_graph")
+        ram_plot.setBackground("#292e30")
+        for axis_name in ("left", "bottom"):
+            axis = ram_plot.getAxis(axis_name)
+            axis.setPen("#788880")
+            axis.setTextPen("#abb8b2")
+        ram_plot.getAxis("bottom").setHeight(28)
+        ram_plot.showGrid(y=True, alpha=0.12)
 
         x_labeled = {0: "RAM", 0.8: "GPU"}
         x = list(x_labeled.keys())
 
-        self.system_mem_bg_used = pg.BarGraphItem(x=[x[0]], height=[0], width=0.6, brush="#0E1F06")
-        self.gpu_mem_bg_used = pg.BarGraphItem(x=[x[1]], height=[0], width=0.6, brush="#660000")
+        self.system_mem_bg_used = pg.BarGraphItem(x=[x[0]], height=[0], width=0.6, brush="#487d7a")
+        self.gpu_mem_bg_used = pg.BarGraphItem(x=[x[1]], height=[0], width=0.6, brush="#876748")
         ram_plot.addItem(self.system_mem_bg_used)
         ram_plot.addItem(self.gpu_mem_bg_used)
 
-        # Add labels on top of bars
         font = QFont()
-        font.setPixelSize(18)
+        font.setPixelSize(14)
 
-        self.system_mem_bar_label = pg.TextItem("%", anchor=(0.5, 0.5))
+        self.system_mem_bar_label = pg.TextItem("%", color="#dde4e0", anchor=(0.5, 0.5))
         self.system_mem_bar_label.setPos(x[0], 10)
         self.system_mem_bar_label.setFont(font)
         ram_plot.addItem(self.system_mem_bar_label)
 
-        self.gpu_mem_bar_label = pg.TextItem("%", anchor=(0.5, 0.5))
+        self.gpu_mem_bar_label = pg.TextItem("%", color="#dde4e0", anchor=(0.5, 0.5))
         self.gpu_mem_bar_label.setPos(x[1], 10)
         self.gpu_mem_bar_label.setFont(font)
         ram_plot.addItem(self.gpu_mem_bar_label)
@@ -208,25 +240,27 @@ class MainWindow(QMainWindow):
         xax.setTicks([list(x_labeled.items())])
         ram_plot.hideAxis("left")
 
-        # Add RAM usage labels to the right side of the plot
         view_range = ram_plot.viewRange()
         X_MAX = view_range[0][1]
         Y_MAX = view_range[1][1]
 
-        self.system_mem_label = pg.TextItem("0.0GB", fill="#0E1F06", anchor=(1,1))
-        self.system_mem_label.setFont(font)
+        memory_label_font = QFont(font)
+        memory_label_font.setPixelSize(18)
+        self.system_mem_label = pg.TextItem("0.0GB", color="#dde4e0", fill="#355a58", anchor=(1,1))
+        self.system_mem_label.setFont(memory_label_font)
         self.system_mem_label.setPos(X_MAX, 0.75*Y_MAX)
         ram_plot.addItem(self.system_mem_label)
 
-        self.gpu_mem_label = pg.TextItem("0.0GB", fill="#660000", anchor=(1,1))
-        self.gpu_mem_label.setFont(font)
+        self.gpu_mem_label = pg.TextItem("0.0GB", color="#dde4e0", fill="#624d39", anchor=(1,1))
+        self.gpu_mem_label.setFont(memory_label_font)
         self.gpu_mem_label.setPos(X_MAX, 0.57*Y_MAX)
         ram_plot.addItem(self.gpu_mem_label)
 
-        ram_grid.addWidget(ram_plot)
-        metric_grid.addLayout(ram_grid)
+        metrics_panel.addWidget(ram_plot, 1)
+        content.addLayout(metrics_panel, 1)
 
-        self.resize(620, 420)
+        self.resize(800, 480)
+        self.setMinimumSize(620, 420)
         self.setWindowTitle("HWMonitor")
         self.setWindowIcon(QIcon("resources/iconfinder_gnome-system-monitor_23964.png"))
         self._center()
@@ -301,9 +335,10 @@ class MainWindow(QMainWindow):
         label.setStyleSheet(style_sheet)
 
 
-        label = self.cpu_stats_labels["1 min"]
-        val = readings["cpu"]["load_average_1min"]
-        label.setText("{:.1f}<span style='font-size:20px'>(1 min)</span>".format(val))
+        for minutes in (1, 5, 15):
+            label = self.cpu_stats_labels[f"{minutes} min"]
+            val = readings["cpu"].get(f"load_average_{minutes}min")
+            label.setText(f"{val:.1f}" if val is not None else "-")
 
         label = self.cpu_stats_labels["#"]
         val = readings["cpu"]["num_high_load_cores"]
@@ -353,59 +388,63 @@ class MainWindow(QMainWindow):
 
 class CPUCoreWindow(QWidget):
     """Window for cpu core utilizations."""
-    COLUMNS_PER_ROW = 5
 
     def __init__(self):
         super().__init__()
-        self.layout = QGridLayout()
-        self.qlcd_widgets = []
+        self.grid_layout = QGridLayout()
+        self.core_bars = []
+        self.pane_layouts = []
 
-        # Button for closing the window, top right.
-        close_button = QPushButton("Close ")
+        close_button = QPushButton("Close")
         close_button.setIcon(QIcon("resources/iconfinder_Close_1891023.png"))
-        close_button.setLayoutDirection(Qt.RightToLeft)
+        close_button.setMinimumSize(100, 52)
+        close_button.setIconSize(QSize(24, 24))
+        close_button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         close_button.clicked.connect(self.close)
-        close_button.setSizePolicy(
-            QSizePolicy.Preferred,
-            QSizePolicy.Preferred
+        self.grid_layout.addWidget(
+            close_button, 0, 1, alignment=Qt.AlignmentFlag.AlignRight
         )
 
         self.empty_label = QLabel("Waiting for data...", self)
-        self.layout.addWidget(self.empty_label, 1, CPUCoreWindow.COLUMNS_PER_ROW-1)
+        self.grid_layout.addWidget(
+            self.empty_label, 1, 0, 1, 2, alignment=Qt.AlignmentFlag.AlignCenter
+        )
 
-        self.layout.addWidget(close_button, 0, CPUCoreWindow.COLUMNS_PER_ROW-1)
-        self.setLayout(self.layout)
+        panes = QHBoxLayout()
+        panes.setSpacing(18)
+        for _ in range(2):
+            pane = QVBoxLayout()
+            pane.setSpacing(8)
+            self.pane_layouts.append(pane)
+            panes.addLayout(pane, 1)
+        self.grid_layout.addLayout(panes, 2, 0, 1, 2)
+        self.setLayout(self.grid_layout)
         self.resize(600, 400)
         self.setWindowTitle("CPU core utilization")
 
     def _update_cpu_cores(self, readings):
-        """Update Core utilization values. The number of cores is not known
-        until the first response is received from the poller.
-        Create a QLCD widget for each core if not already created
-        and update the values.
-        """
-        # Remove the dummy label
-        self.empty_label.setParent(None)
-        if not self.qlcd_widgets:
-            NUM_CORES = len(readings["cpu"]["cores"]["utilization"])
-            # add at least 1 row if NUM_CORES < COLUMNS_PER_ROW
-            NUM_ROWS = max(1, NUM_CORES//CPUCoreWindow.COLUMNS_PER_ROW)
-            for row in range(NUM_ROWS):
-                for col in range(CPUCoreWindow.COLUMNS_PER_ROW):
-                    qlcd = QLCDNumber(self)
-                    qlcd.setDigitCount(2)
-                    qlcd.setSegmentStyle(QLCDNumber.Flat)
-                    self.layout.addWidget(qlcd, row+2, col)
-                    self.qlcd_widgets.append(qlcd)
-        else:
-            for i, qlcd in enumerate(self.qlcd_widgets):
-                try:
-                    val = readings["cpu"]["cores"]["utilization"][i]
-                except IndexError:
-                    val = 0
-                qlcd.display(val)
-                style_sheet = utils.get_cpu_utilization_background_style(val)
-                qlcd.setStyleSheet(style_sheet) 
+        """Update one horizontal utilization bar per CPU core."""
+        utilizations = readings["cpu"]["cores"]["utilization"]
+        if not self.core_bars:
+            self.empty_label.setParent(None)
+            split_at = (len(utilizations) + 1) // 2
+            for core_index in range(len(utilizations)):
+                bar = QProgressBar(self)
+                bar.setRange(0, 100)
+                bar.setFormat(f"CPU {core_index}  %p%")
+                bar.setMinimumHeight(28)
+                self.pane_layouts[0 if core_index < split_at else 1].addWidget(bar)
+                self.core_bars.append(bar)
+
+        for core_index, bar in enumerate(self.core_bars):
+            value = utilizations[core_index] if core_index < len(utilizations) else 0
+            bar.setValue(value)
+            color_style = utils.get_cpu_utilization_background_style(value)
+            bar.setStyleSheet(
+                "QProgressBar { border: 1px solid #53615c; border-radius: 2px; "
+                "background-color: #303638; color: #dde4e0; text-align: center; }"
+                f"QProgressBar::chunk {{ {color_style} }}"
+            )
 
 class PercentAxisItem(pg.AxisItem):
     """Custom pyqtgraph AxisItem class with customized tick strings."""

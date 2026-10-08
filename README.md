@@ -13,7 +13,7 @@ Hardware metrics are periodically collected from the client and sent to the serv
 System metrics monitored include:
  * Current CPU utilization :computer:
    * Overall CPU utilization percentage
-   * 1 minute load average
+  * 1, 5 and 15 minute load averages
    * Number of cores with high utilization
    * Individual CPU core utilization
  * CPU and GPU utilization graphs :chart_with_upwards_trend:
@@ -30,7 +30,7 @@ For AMD devices you might need to install the library separately.
 
 ## Setup
 In order to setup network connection between the client and the server, create a configuration file and specify the
-server's (ie. the device running the monitor) local IP address:
+server's (ie. the device running the monitor) local IP address and the port to connect to:
 ```shell
 cp config.tmpl.toml config.toml
 ```
@@ -38,8 +38,11 @@ cp config.tmpl.toml config.toml
 [transport.socket]
 host="192.168.100.4"
 port=65432
+max_consecutive_failures=5
 ```
-The TCP port number can also be configured as needed. 
+The `max_consecutive_failures` controls how many
+consecutive failed connection attempts are allowed before no further attempts are made.
+
 
 ### Python setup
 The Python project is managed with `uv`

@@ -42,6 +42,25 @@ def test_graphics_handle_not_available(mock_get_gpu_handle, gpuinfo_mock):
     gpuinfo_mock.assert_called_once_with()
     assert result == gpuinfo_mock.return_value
 
+
+@patch("transport.hw_stats._get_cpu_temps")
+@patch("transport.hw_stats.psutil")
+def test_get_cpu_load_averages(mock_psutil, mock_get_cpu_temps):
+    mock_psutil.getloadavg.return_value = (0.7651, 1.2345, 2.3456)
+    mock_psutil.cpu_percent.side_effect = lambda percpu=False: [10, 60] if percpu else 35
+    frequency = MagicMock(current=2400)
+    mock_psutil.cpu_freq.side_effect = lambda percpu=False: [frequency] if percpu else frequency
+    mock_get_cpu_temps.return_value = [MagicMock(label="Core 0", value=45)]
+
+    result = hw_stats._get_cpu_info()
+
+    assert result.load_average_1min == 0.7651
+    assert result.load_average_5min == 1.2345
+    assert result.load_average_15min == 2.3456
+    assert result.model_dump()["load_average_5min"] == 1.2345
+    assert result.model_dump()["load_average_15min"] == 2.3456
+    mock_psutil.getloadavg.assert_called_once_with()
+
 def test_gpu_handle_not_loaded_twice(monkeypatch):
     """_get_gpu_info should only attempt to load the GPU handle
     on first call.
